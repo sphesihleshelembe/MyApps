@@ -47,3 +47,18 @@ export interface SettingsSection {
   title: string;
   items: SettingsItem[];
 }
+
+export interface ScanPage {
+  id: string;
+  uri: string;
+  width: number;
+  height: number;
+  capturedAt: number;
+}
+
+export interface ScanSessionData {
+  id: string;
+  pages: ScanPage[];
+  createdAt: number;
+  updatedAt: number;
+}

@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Bell, FileText, Scan, Layers, FileUp, QrCode } from 'lucide-react-native';
 import * as LucideIcons from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
@@ -37,7 +38,14 @@ function hexToRgba(hex: string, alpha: number): string {
 
 export default function HomeScreen() {
   const { colors, isDark } = useTheme();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleQuickAction = (actionId: string) => {
+    if (actionId === 'scan') {
+      router.push('/scanner');
+    }
+  };
 
   return (
     <SafeAreaView
@@ -94,6 +102,7 @@ export default function HomeScreen() {
               return (
                 <TouchableOpacity
                   key={action.id}
+                  onPress={() => handleQuickAction(action.id)}
                   style={[
                     styles.quickActionItem,
                     {
