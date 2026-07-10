@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { ArrowLeft, RotateCcw, Check } from 'lucide-react-native';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius } from '@/theme';
 import { ScanSession } from '@/services/scanner/ScanSession';
