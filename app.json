@@ -13,7 +13,11 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#2563EB"
       },
-      "package": "com.shelembestudios.noviq"
+      "package": "com.shelembestudios.noviq",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "ios": {
       "supportsTablet": true,
@@ -37,6 +41,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "62e330d1-6bb3-44bb-9c33-cffec90ed15b"
+      }
     }
   }
 }

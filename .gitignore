@@ -33,3 +33,9 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Visual Studio
+.vs/
+
+# EAS
+.easignore
