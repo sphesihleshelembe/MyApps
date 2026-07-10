@@ -1,0 +1,724 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  TextInput,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  ScanLine,
+  QrCode,
+  History,
+  Camera,
+  Link,
+  Mail,
+  Phone,
+  Wifi,
+  ChevronRight,
+  Clipboard,
+  Zap,
+} from 'lucide-react-native';
+import { useTheme } from '@/hooks/useTheme';
+import { Typography, Spacing, BorderRadius, Shadows } from '@/theme';
+import { Card, SectionHeader } from '@/components';
+
+type QrTab = 'scanner' | 'generator';
+
+const QR_GENERATOR_TYPES = [
+  { id: 'url', label: 'URL / Link', icon: Link, color: '#2563EB' },
+  { id: 'email', label: 'Email', icon: Mail, color: '#7C3AED' },
+  { id: 'phone', label: 'Phone', icon: Phone, color: '#059669' },
+  { id: 'wifi', label: 'Wi-Fi', icon: Wifi, color: '#0891B2' },
+];
+
+const QR_HISTORY_PLACEHOLDER = [
+  {
+    id: '1',
+    type: 'URL',
+    content: 'https://shelembestudios.com',
+    createdAt: '1 hour ago',
+    color: '#2563EB',
+  },
+  {
+    id: '2',
+    type: 'Email',
+    content: 'hello@shelembestudios.com',
+    createdAt: 'Yesterday',
+    color: '#7C3AED',
+  },
+  {
+    id: '3',
+    type: 'Phone',
+    content: '+1 (555) 000-1234',
+    createdAt: '3 days ago',
+    color: '#059669',
+  },
+];
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+export default function QRScreen() {
+  const { colors, isDark } = useTheme();
+  const [activeTab, setActiveTab] = useState<QrTab>('scanner');
+  const [selectedGenType, setSelectedGenType] = useState('url');
+  const [inputValue, setInputValue] = useState('');
+
+  return (
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[styles.screenTitle, { color: colors.text }]}>QR Code</Text>
+          <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>
+            Scan and generate QR codes instantly
+          </Text>
+        </View>
+
+        {/* Tab Switcher */}
+        <View style={styles.tabSwitcherWrapper}>
+          <View
+            style={[
+              styles.tabSwitcher,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <TouchableOpacity
+              style={[
+                styles.tabButton,
+                activeTab === 'scanner' && [
+                  styles.tabButtonActive,
+                  { backgroundColor: colors.primary },
+                ],
+              ]}
+              onPress={() => setActiveTab('scanner')}
+              activeOpacity={0.75}
+            >
+              <ScanLine
+                size={16}
+                color={activeTab === 'scanner' ? '#FFFFFF' : colors.textSecondary}
+                strokeWidth={2}
+              />
+              <Text
+                style={[
+                  styles.tabLabel,
+                  {
+                    color:
+                      activeTab === 'scanner' ? '#FFFFFF' : colors.textSecondary,
+                  },
+                ]}
+              >
+                Scanner
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.tabButton,
+                activeTab === 'generator' && [
+                  styles.tabButtonActive,
+                  { backgroundColor: colors.primary },
+                ],
+              ]}
+              onPress={() => setActiveTab('generator')}
+              activeOpacity={0.75}
+            >
+              <QrCode
+                size={16}
+                color={
+                  activeTab === 'generator' ? '#FFFFFF' : colors.textSecondary
+                }
+                strokeWidth={2}
+              />
+              <Text
+                style={[
+                  styles.tabLabel,
+                  {
+                    color:
+                      activeTab === 'generator'
+                        ? '#FFFFFF'
+                        : colors.textSecondary,
+                  },
+                ]}
+              >
+                Generator
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Scanner Tab */}
+        {activeTab === 'scanner' && (
+          <View style={styles.tabContent}>
+            {/* Viewfinder placeholder */}
+            <Card
+              style={[styles.viewfinderCard, { borderColor: colors.border, borderWidth: 1 }]}
+              shadow="none"
+              padding={0}
+            >
+              <View
+                style={[
+                  styles.viewfinderArea,
+                  { backgroundColor: isDark ? '#0F172A' : '#F1F5F9' },
+                ]}
+              >
+                {/* Corner markers */}
+                {['tl', 'tr', 'bl', 'br'].map((pos) => (
+                  <View
+                    key={pos}
+                    style={[
+                      styles.cornerMarker,
+                      styles[`corner_${pos}` as keyof typeof styles] as any,
+                      { borderColor: colors.primary },
+                    ]}
+                  />
+                ))}
+                <Camera
+                  size={40}
+                  color={colors.textDisabled}
+                  strokeWidth={1.5}
+                />
+                <Text
+                  style={[
+                    styles.viewfinderLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Camera preview
+                </Text>
+                <Text
+                  style={[
+                    styles.viewfinderHint,
+                    { color: colors.textDisabled },
+                  ]}
+                >
+                  Tap to open camera
+                </Text>
+              </View>
+            </Card>
+
+            <TouchableOpacity
+              style={[
+                styles.openCameraButton,
+                { backgroundColor: colors.primary },
+              ]}
+              activeOpacity={0.85}
+            >
+              <Camera size={20} color="#FFFFFF" strokeWidth={2} />
+              <Text style={styles.openCameraLabel}>Open Camera</Text>
+            </TouchableOpacity>
+
+            {/* Or paste */}
+            <View style={styles.dividerRow}>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
+              <Text
+                style={[styles.dividerText, { color: colors.textDisabled }]}
+              >
+                or
+              </Text>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.pasteButton,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+              activeOpacity={0.75}
+            >
+              <Clipboard size={18} color={colors.primary} strokeWidth={2} />
+              <Text style={[styles.pasteLabel, { color: colors.primary }]}>
+                Paste from Clipboard
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Generator Tab */}
+        {activeTab === 'generator' && (
+          <View style={styles.tabContent}>
+            {/* Type selector */}
+            <View style={styles.genSection}>
+              <Text style={[styles.genSectionLabel, { color: colors.text }]}>
+                Content Type
+              </Text>
+              <View style={styles.genTypeGrid}>
+                {QR_GENERATOR_TYPES.map((type) => {
+                  const isSelected = selectedGenType === type.id;
+                  const bgColor = hexToRgba(
+                    type.color,
+                    isDark ? 0.15 : 0.09
+                  );
+                  return (
+                    <TouchableOpacity
+                      key={type.id}
+                      style={[
+                        styles.genTypeCard,
+                        {
+                          backgroundColor: isSelected
+                            ? type.color
+                            : colors.card,
+                          borderColor: isSelected ? type.color : colors.border,
+                        },
+                        Shadows.sm,
+                      ]}
+                      onPress={() => setSelectedGenType(type.id)}
+                      activeOpacity={0.75}
+                    >
+                      <View
+                        style={[
+                          styles.genTypeIcon,
+                          {
+                            backgroundColor: isSelected
+                              ? 'rgba(255,255,255,0.2)'
+                              : bgColor,
+                          },
+                        ]}
+                      >
+                        <type.icon
+                          size={20}
+                          color={isSelected ? '#FFFFFF' : type.color}
+                          strokeWidth={2}
+                        />
+                      </View>
+                      <Text
+                        style={[
+                          styles.genTypeLabel,
+                          {
+                            color: isSelected ? '#FFFFFF' : colors.text,
+                          },
+                        ]}
+                      >
+                        {type.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Input */}
+            <View style={styles.genSection}>
+              <Text style={[styles.genSectionLabel, { color: colors.text }]}>
+                Enter Content
+              </Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[styles.textInput, { color: colors.text }]}
+                  placeholder={
+                    selectedGenType === 'url'
+                      ? 'https://example.com'
+                      : selectedGenType === 'email'
+                      ? 'name@example.com'
+                      : selectedGenType === 'phone'
+                      ? '+1 (555) 000-0000'
+                      : 'Network name...'
+                  }
+                  placeholderTextColor={colors.textDisabled}
+                  value={inputValue}
+                  onChangeText={setInputValue}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
+
+            {/* QR Preview placeholder */}
+            <View style={styles.genSection}>
+              <Text style={[styles.genSectionLabel, { color: colors.text }]}>
+                Preview
+              </Text>
+              <Card
+                style={[styles.qrPreviewCard, { borderColor: colors.border, borderWidth: 1 }]}
+                shadow="none"
+              >
+                <View
+                  style={[
+                    styles.qrPreviewArea,
+                    { backgroundColor: isDark ? '#1E293B' : '#F8FAFC' },
+                  ]}
+                >
+                  <QrCode
+                    size={80}
+                    color={
+                      inputValue.length > 0
+                        ? colors.text
+                        : colors.textDisabled
+                    }
+                    strokeWidth={1}
+                  />
+                  {inputValue.length === 0 && (
+                    <Text
+                      style={[
+                        styles.qrPreviewHint,
+                        { color: colors.textDisabled },
+                      ]}
+                    >
+                      Enter content above to generate QR
+                    </Text>
+                  )}
+                </View>
+              </Card>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.generateButton,
+                {
+                  backgroundColor:
+                    inputValue.length > 0 ? colors.primary : colors.border,
+                },
+              ]}
+              disabled={inputValue.length === 0}
+              activeOpacity={0.85}
+            >
+              <Zap
+                size={18}
+                color={inputValue.length > 0 ? '#FFFFFF' : colors.textDisabled}
+                strokeWidth={2}
+              />
+              <Text
+                style={[
+                  styles.generateLabel,
+                  {
+                    color:
+                      inputValue.length > 0 ? '#FFFFFF' : colors.textDisabled,
+                  },
+                ]}
+              >
+                Generate QR Code
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* History */}
+        <View style={styles.historySection}>
+          <SectionHeader
+            title="Recent QR Codes"
+            actionLabel="Clear"
+            onAction={() => {}}
+          />
+          {QR_HISTORY_PLACEHOLDER.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[
+                styles.historyRow,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+                Shadows.sm,
+              ]}
+              activeOpacity={0.75}
+            >
+              <View
+                style={[
+                  styles.historyIcon,
+                  { backgroundColor: hexToRgba(item.color, isDark ? 0.15 : 0.09) },
+                ]}
+              >
+                <QrCode size={20} color={item.color} strokeWidth={2} />
+              </View>
+              <View style={styles.historyInfo}>
+                <Text
+                  style={[styles.historyType, { color: colors.textSecondary }]}
+                >
+                  {item.type}
+                </Text>
+                <Text
+                  style={[styles.historyContent, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  {item.content}
+                </Text>
+              </View>
+              <Text style={[styles.historyDate, { color: colors.textDisabled }]}>
+                {item.createdAt}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1 },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: Spacing['3xl'] },
+
+  header: {
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.sm,
+  },
+  screenTitle: {
+    ...Typography.headingL,
+    marginBottom: 4,
+  },
+  screenSubtitle: {
+    ...Typography.body,
+  },
+
+  tabSwitcherWrapper: {
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.base,
+  },
+  tabSwitcher: {
+    flexDirection: 'row',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    padding: 4,
+    gap: 4,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+  },
+  tabButtonActive: {
+    // backgroundColor set inline
+  },
+  tabLabel: {
+    ...Typography.bodyMedium,
+    fontSize: 14,
+  },
+
+  tabContent: {
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.lg,
+  },
+
+  viewfinderCard: {
+    overflow: 'hidden',
+    borderRadius: BorderRadius.xl,
+  },
+  viewfinderArea: {
+    height: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
+  cornerMarker: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderWidth: 3,
+  },
+  corner_tl: {
+    top: 20,
+    left: 20,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+    borderTopLeftRadius: 6,
+  },
+  corner_tr: {
+    top: 20,
+    right: 20,
+    borderLeftWidth: 0,
+    borderBottomWidth: 0,
+    borderTopRightRadius: 6,
+  },
+  corner_bl: {
+    bottom: 20,
+    left: 20,
+    borderRightWidth: 0,
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 6,
+  },
+  corner_br: {
+    bottom: 20,
+    right: 20,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+    borderBottomRightRadius: 6,
+  },
+  viewfinderLabel: {
+    ...Typography.bodyMedium,
+  },
+  viewfinderHint: {
+    ...Typography.caption,
+  },
+
+  openCameraButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.base,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  openCameraLabel: {
+    ...Typography.button,
+    color: '#FFFFFF',
+  },
+
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginVertical: Spacing.base,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    ...Typography.caption,
+  },
+
+  pasteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    gap: Spacing.sm,
+  },
+  pasteLabel: {
+    ...Typography.button,
+  },
+
+  genSection: {
+    marginBottom: Spacing.lg,
+  },
+  genSectionLabel: {
+    ...Typography.bodyMedium,
+    marginBottom: Spacing.sm,
+  },
+  genTypeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  genTypeCard: {
+    width: '47%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    gap: Spacing.sm,
+  },
+  genTypeIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  genTypeLabel: {
+    ...Typography.bodyMedium,
+    fontSize: 13,
+    flex: 1,
+  },
+  inputContainer: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  textInput: {
+    ...Typography.body,
+    paddingVertical: Spacing.xs,
+  },
+  qrPreviewCard: {
+    overflow: 'hidden',
+  },
+  qrPreviewArea: {
+    height: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    borderRadius: BorderRadius.lg,
+  },
+  qrPreviewHint: {
+    ...Typography.caption,
+    textAlign: 'center',
+  },
+  generateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.base,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  generateLabel: {
+    ...Typography.button,
+  },
+
+  historySection: {
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.xl,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    marginBottom: Spacing.sm,
+    gap: Spacing.md,
+  },
+  historyIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  historyInfo: {
+    flex: 1,
+  },
+  historyType: {
+    ...Typography.caption,
+    marginBottom: 2,
+  },
+  historyContent: {
+    ...Typography.bodyMedium,
+  },
+  historyDate: {
+    ...Typography.caption,
+    flexShrink: 0,
+  },
+});
