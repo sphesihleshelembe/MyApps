@@ -41,6 +41,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="scanner/index" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
         <Stack.Screen name="scanner/preview" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="scanner/review" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />

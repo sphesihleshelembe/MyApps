@@ -33,6 +33,12 @@
         {
           "cameraPermission": "Allow Noviq to access your camera to scan documents and QR codes."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Noviq to access your photo library to import images as scan pages."
+        }
       ]
     ],
     "experiments": {

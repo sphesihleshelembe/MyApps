@@ -83,6 +83,27 @@ export class ScanSession {
     await AsyncStorage.removeItem(storageKey(this.data.id));
   }
 
+  static async listAll(): Promise<ScanSessionData[]> {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const sessionKeys = keys.filter((k) => k.startsWith(STORAGE_KEY_PREFIX));
+      if (sessionKeys.length === 0) return [];
+      const records = await AsyncStorage.getMany(sessionKeys);
+      const sessions: ScanSessionData[] = [];
+      for (const value of Object.values(records)) {
+        if (!value) continue;
+        try {
+          sessions.push(JSON.parse(value) as ScanSessionData);
+        } catch {
+          // Skip corrupted entries
+        }
+      }
+      return sessions.sort((a, b) => b.updatedAt - a.updatedAt);
+    } catch {
+      return [];
+    }
+  }
+
   toJSON(): ScanSessionData {
     return { ...this.data, pages: [...this.data.pages] };
   }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ interface ScanThumbnailProps {
   active?: boolean;
 }
 
-export function ScanThumbnail({
+export const ScanThumbnail = memo(function ScanThumbnail({
   page,
   index,
   onDelete,
@@ -81,7 +81,7 @@ export function ScanThumbnail({
       )}
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
