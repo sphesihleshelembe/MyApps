@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as LucideIcons from 'lucide-react-native';
 import { Scan, Image, Type, Layers, Minimize2, Scissors, FileImage, RotateCw } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius, Shadows } from '@/theme';
 import { SectionHeader } from '@/components';
@@ -37,8 +38,13 @@ function toPascalCase(str: string): string {
 }
 
 export default function DocumentsScreen() {
+  const router = useRouter();
   const { colors, isDark } = useTheme();
   const [activeFilter, setActiveFilter] = useState('all');
+
+  const handleScanDocument = () => {
+    router.push('/scanner');
+  };
 
   const filteredTools =
     activeFilter === 'all'
@@ -70,6 +76,7 @@ export default function DocumentsScreen() {
           <TouchableOpacity
             style={[styles.scanBanner, { backgroundColor: colors.primary }]}
             activeOpacity={0.85}
+            onPress={handleScanDocument}
           >
             <View style={styles.scanBannerText}>
               <Text style={styles.scanBannerTitle}>Scan a Document</Text>
@@ -145,6 +152,7 @@ export default function DocumentsScreen() {
                   Shadows.sm,
                 ]}
                 activeOpacity={0.75}
+                onPress={tool.id === 'scan-doc' ? handleScanDocument : undefined}
               >
                 <View
                   style={[

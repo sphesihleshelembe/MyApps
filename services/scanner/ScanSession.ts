@@ -88,12 +88,12 @@ export class ScanSession {
       const keys = await AsyncStorage.getAllKeys();
       const sessionKeys = keys.filter((k) => k.startsWith(STORAGE_KEY_PREFIX));
       if (sessionKeys.length === 0) return [];
-      const records = await AsyncStorage.getMany(sessionKeys);
       const sessions: ScanSessionData[] = [];
-      for (const value of Object.values(records)) {
-        if (!value) continue;
+      for (const key of sessionKeys) {
+        const raw = await AsyncStorage.getItem(key);
+        if (!raw) continue;
         try {
-          sessions.push(JSON.parse(value) as ScanSessionData);
+          sessions.push(JSON.parse(raw) as ScanSessionData);
         } catch {
           // Skip corrupted entries
         }
