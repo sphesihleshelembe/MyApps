@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,10 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -19,10 +23,13 @@ import {
   FileCheck,
   Plus,
   FileText,
+  X,
 } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius, Shadows } from '@/theme';
 import { ScanSession } from '@/services/scanner/ScanSession';
+import { generatePdf, timestampName } from '@/services/pdf/PdfService';
+import { saveDocument } from '@/services/documents/DocumentStore';
 import type { ScanPage } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -41,6 +48,20 @@ export default function ReviewScanScreen() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [finishing, setFinishing] = useState(false);
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [docName, setDocName] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [saveProgress, setSaveProgress] = useState('');
+  const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (saveModalVisible) {
+      setDocName(timestampName());
+      setGenerateError(null);
+      setSaveProgress('');
+    }
+  }, [saveModalVisible]);
 
   useFocusEffect(
     useCallback(() => {
@@ -103,23 +124,68 @@ export default function ReviewScanScreen() {
     router.back();
   }, [router]);
 
-  const handleFinish = useCallback(async () => {
+  const handleFinish = useCallback(() => {
     if (finishing || pages.length === 0) return;
     setFinishing(true);
-    Alert.alert(
-      'Save Scan',
-      `Your ${pages.length}-page scan is ready. PDF export and saving will be available in the next update.`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setFinishing(false);
-          },
-        },
-      ]
-    );
-    setFinishing(false);
+    setSaveModalVisible(true);
   }, [finishing, pages.length]);
+
+  const handleCancelSave = useCallback(() => {
+    setSaveModalVisible(false);
+    setFinishing(false);
+    setGenerating(false);
+    setGenerateError(null);
+    setSaveProgress('');
+  }, []);
+
+  const handleConfirmSave = useCallback(async () => {
+    if (generating || pages.length === 0 || !sessionId) return;
+    setGenerating(true);
+    setGenerateError(null);
+
+    try {
+      setSaveProgress('Loading pages…');
+      const session = await ScanSession.load(sessionId);
+      if (!session) {
+        throw new Error('Scan session could not be found.');
+      }
+      const allPages = session.getPages();
+      if (allPages.length === 0) {
+        throw new Error('No pages to save.');
+      }
+
+      setSaveProgress('Generating PDF…');
+      const name = docName.trim() || timestampName();
+      const result = await generatePdf(allPages, name);
+
+      setSaveProgress('Saving document…');
+      await saveDocument({
+        name,
+        path: result.path,
+        pageCount: result.pageCount,
+        thumbnailUri: result.thumbnailUri,
+      });
+
+      setSaveProgress('Cleaning up…');
+      try {
+        await session.destroy();
+      } catch {
+        // Non-critical
+      }
+
+      setSaveModalVisible(false);
+      setFinishing(false);
+      setGenerating(false);
+      setSaveProgress('');
+
+      router.replace('/(tabs)/documents');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to generate PDF. Please try again.';
+      setGenerateError(msg);
+      setGenerating(false);
+      setSaveProgress('');
+    }
+  }, [generating, pages.length, sessionId, docName, router]);
 
   const renderPageTile = useCallback(
     ({ item, index }: { item: ScanPage; index: number }) => {
@@ -310,6 +376,125 @@ export default function ReviewScanScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Save Modal */}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={saveModalVisible}
+        onRequestClose={handleCancelSave}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.card },
+              Shadows.lg,
+            ]}
+          >
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Save Document
+              </Text>
+              {!generating && (
+                <TouchableOpacity
+                  onPress={handleCancelSave}
+                  hitSlop={12}
+                  accessibilityLabel="Cancel save"
+                  accessibilityRole="button"
+                >
+                  <X size={20} color={colors.textSecondary} strokeWidth={2} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {generating ? (
+              <View style={styles.generatingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={[styles.generatingText, { color: colors.textSecondary }]}>
+                  {saveProgress || 'Generating PDF…'}
+                </Text>
+                <Text style={[styles.generatingSubtext, { color: colors.textSecondary }]}>
+                  {pages.length} page{pages.length !== 1 ? 's' : ''} • This may take a moment
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                  Document Name
+                </Text>
+                <TextInput
+                  ref={inputRef}
+                  style={[
+                    styles.textInput,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.text,
+                    },
+                  ]}
+                  value={docName}
+                  onChangeText={setDocName}
+                  placeholder="Enter a name for your document"
+                  placeholderTextColor={colors.textDisabled}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  returnKeyType="done"
+                  blurOnSubmit
+                  selectTextOnFocus
+                />
+                <Text style={[styles.hintText, { color: colors.textSecondary }]}>
+                  Leave blank to use a timestamp-based name.
+                </Text>
+
+                {generateError && (
+                  <View
+                    style={[
+                      styles.errorBox,
+                      { backgroundColor: colors.errorLight },
+                    ]}
+                  >
+                    <Text style={[styles.errorText, { color: colors.error }]}>
+                      {generateError}
+                    </Text>
+                  </View>
+                )}
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.modalCancelButton,
+                      { borderColor: colors.border },
+                    ]}
+                    onPress={handleCancelSave}
+                    activeOpacity={0.75}
+                    accessibilityLabel="Cancel"
+                    accessibilityRole="button"
+                  >
+                    <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalConfirmButton, { backgroundColor: colors.primary }]}
+                    onPress={handleConfirmSave}
+                    activeOpacity={0.85}
+                    accessibilityLabel="Save PDF"
+                    accessibilityRole="button"
+                  >
+                    <FileCheck size={18} color="#FFFFFF" strokeWidth={2} />
+                    <Text style={styles.modalConfirmText}>Save PDF</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -463,5 +648,91 @@ const styles = StyleSheet.create({
     ...Typography.button,
     color: '#FFFFFF',
     fontSize: 14,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: Spacing.xl,
+  },
+  modalCard: {
+    width: '100%',
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.lg,
+  },
+  modalTitle: {
+    ...Typography.headingM,
+  },
+  inputLabel: {
+    ...Typography.caption,
+    marginBottom: Spacing.sm,
+  },
+  textInput: {
+    ...Typography.body,
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+  },
+  hintText: {
+    ...Typography.caption,
+    marginTop: Spacing.sm,
+  },
+  errorBox: {
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  errorText: {
+    ...Typography.caption,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.xl,
+  },
+  modalCancelButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+  },
+  modalCancelText: {
+    ...Typography.button,
+  },
+  modalConfirmButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+  },
+  modalConfirmText: {
+    ...Typography.button,
+    color: '#FFFFFF',
+  },
+  generatingContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+    gap: Spacing.md,
+  },
+  generatingText: {
+    ...Typography.bodyMedium,
+  },
+  generatingSubtext: {
+    ...Typography.caption,
   },
 });

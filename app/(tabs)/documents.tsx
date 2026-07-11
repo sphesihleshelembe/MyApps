@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as LucideIcons from 'lucide-react-native';
-import { Scan, Image, Type, Layers, Minimize2, Scissors, FileImage, RotateCw } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { Scan, Image as ImageIcon, Type, Layers, Minimize2, Scissors, FileImage, RotateCw, FileText, Share2, Trash2 } from 'lucide-react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius, Shadows } from '@/theme';
 import { SectionHeader } from '@/components';
 import { DOCUMENT_TOOLS, TOOL_ICON_COLORS } from '@/constants/data';
+import { listDocuments, deleteDocument } from '@/services/documents/DocumentStore';
+import type { StoredDocument } from '@/types';
 
 const CATEGORY_FILTERS = [
   { id: 'all', label: 'All' },
@@ -41,15 +46,84 @@ export default function DocumentsScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const [activeFilter, setActiveFilter] = useState('all');
+  const [savedDocs, setSavedDocs] = useState<StoredDocument[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadDocs = useCallback(async () => {
+    try {
+      const docs = await listDocuments();
+      setSavedDocs(docs);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingDocs(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDocs();
+    }, [loadDocs])
+  );
 
   const handleScanDocument = () => {
     router.push('/scanner');
   };
 
+  const handleOpenDocument = useCallback(async (doc: StoredDocument) => {
+    try {
+      await Sharing.shareAsync(doc.path, {
+        mimeType: 'application/pdf',
+        dialogTitle: doc.name,
+      });
+    } catch (e) {
+      console.warn('Failed to open document:', e);
+    }
+  }, []);
+
+  const handleShareDocument = useCallback(async (doc: StoredDocument) => {
+    try {
+      await Sharing.shareAsync(doc.path, {
+        mimeType: 'application/pdf',
+        dialogTitle: `Share ${doc.name}`,
+      });
+    } catch (e) {
+      console.warn('Failed to share document:', e);
+    }
+  }, []);
+
+  const handleDeleteDocument = useCallback(
+    async (doc: StoredDocument) => {
+      try {
+        await deleteDocument(doc.id);
+        setSavedDocs((prev) => prev.filter((d) => d.id !== doc.id));
+      } catch (e) {
+        console.warn('Failed to delete document:', e);
+      }
+    },
+    []
+  );
+
   const filteredTools =
     activeFilter === 'all'
       ? DOCUMENT_TOOLS
       : DOCUMENT_TOOLS.filter((t) => t.category === activeFilter);
+
+  const formatDate = (ts: number) => {
+    const d = new Date(ts);
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(hours / 24);
+    if (days === 0 && d.getDate() === now.getDate()) {
+      return hours <= 1 ? 'Just now' : `${hours}h ago`;
+    }
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days}d ago`;
+    return d.toLocaleDateString();
+  };
 
   return (
     <SafeAreaView
@@ -88,6 +162,108 @@ export default function DocumentsScreen() {
               <Scan size={36} color="rgba(255,255,255,0.9)" strokeWidth={1.5} />
             </View>
           </TouchableOpacity>
+        </View>
+
+        {/* Saved Documents */}
+        <View style={styles.savedSection}>
+          <SectionHeader
+            title={`Saved (${savedDocs.length})`}
+          />
+          {loadingDocs ? (
+            <View style={styles.savedLoadingRow}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.savedLoadingText, { color: colors.textSecondary }]}>
+                Loading documents…
+              </Text>
+            </View>
+          ) : savedDocs.length === 0 ? (
+            <View
+              style={[
+                styles.savedEmpty,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <FileText size={28} color={colors.textSecondary} strokeWidth={1.5} />
+              <Text style={[styles.savedEmptyText, { color: colors.textSecondary }]}>
+                No saved documents yet
+              </Text>
+              <Text style={[styles.savedEmptySub, { color: colors.textDisabled }]}>
+                Scan a document to get started
+              </Text>
+            </View>
+          ) : (
+            <View>
+              {savedDocs.map((doc) => (
+                <View
+                  key={doc.id}
+                  style={[
+                    styles.docRow,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                    Shadows.sm,
+                  ]}
+                >
+                  <TouchableOpacity
+                    style={styles.docMain}
+                    onPress={() => handleOpenDocument(doc)}
+                    activeOpacity={0.75}
+                    accessibilityLabel={`Open ${doc.name}`}
+                    accessibilityRole="button"
+                  >
+                    {doc.thumbnailUri ? (
+                      <Image
+                        source={{ uri: doc.thumbnailUri }}
+                        style={styles.docThumb}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.docThumbPlaceholder,
+                          { backgroundColor: colors.primaryLight },
+                        ]}
+                      >
+                        <FileText size={20} color={colors.primary} strokeWidth={2} />
+                      </View>
+                    )}
+                    <View style={styles.docInfo}>
+                      <Text
+                        style={[styles.docName, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {doc.name}
+                      </Text>
+                      <Text style={[styles.docMeta, { color: colors.textSecondary }]}>
+                        {doc.pageCount} page{doc.pageCount !== 1 ? 's' : ''} • {formatDate(doc.createdAt)}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  <View style={styles.docActions}>
+                    <TouchableOpacity
+                      style={styles.docActionBtn}
+                      onPress={() => handleShareDocument(doc)}
+                      hitSlop={8}
+                      accessibilityLabel={`Share ${doc.name}`}
+                      accessibilityRole="button"
+                    >
+                      <Share2 size={18} color={colors.textSecondary} strokeWidth={2} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.docActionBtn}
+                      onPress={() => handleDeleteDocument(doc)}
+                      hitSlop={8}
+                      accessibilityLabel={`Delete ${doc.name}`}
+                      accessibilityRole="button"
+                    >
+                      <Trash2 size={18} color={colors.error} strokeWidth={2} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Category Filter */}
@@ -328,5 +504,85 @@ const styles = StyleSheet.create({
     ...Typography.label,
     color: '#FFFFFF',
     fontSize: 9,
+  },
+
+  savedSection: {
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.xl,
+  },
+  savedLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.lg,
+  },
+  savedLoadingText: {
+    ...Typography.body,
+  },
+  savedEmpty: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    gap: Spacing.xs,
+  },
+  savedEmptyText: {
+    ...Typography.bodyMedium,
+  },
+  savedEmptySub: {
+    ...Typography.caption,
+  },
+  docRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    marginBottom: Spacing.sm,
+    overflow: 'hidden',
+  },
+  docMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    gap: Spacing.md,
+  },
+  docThumb: {
+    width: 44,
+    height: 56,
+    borderRadius: BorderRadius.sm,
+    flexShrink: 0,
+  },
+  docThumbPlaceholder: {
+    width: 44,
+    height: 56,
+    borderRadius: BorderRadius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  docInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  docName: {
+    ...Typography.bodyMedium,
+  },
+  docMeta: {
+    ...Typography.caption,
+  },
+  docActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: Spacing.md,
+    gap: Spacing.sm,
+  },
+  docActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

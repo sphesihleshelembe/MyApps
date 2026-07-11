@@ -62,3 +62,12 @@ export interface ScanSessionData {
   createdAt: number;
   updatedAt: number;
 }
+
+export interface StoredDocument {
+  id: string;
+  name: string;
+  path: string;
+  pageCount: number;
+  createdAt: number;
+  thumbnailUri?: string;
+}
