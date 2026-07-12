@@ -15,6 +15,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius } from '@/theme';
 import { ScanSession } from '@/services/scanner/ScanSession';
+import { saveScanImage } from '@/services/scanner/imageStorage';
 import { ScanThumbnail } from '@/components/scanner/ScanThumbnail';
 import type { ScanPage } from '@/types';
 
@@ -32,6 +33,7 @@ export default function PreviewScreen() {
 
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -58,20 +60,30 @@ export default function PreviewScreen() {
   }, [params.uri, router]);
 
   const handleUsePhoto = useCallback(async () => {
-    if (saving || !params.sessionId) return;
+    if (saving || !params.sessionId || !params.uri) return;
     setSaving(true);
+    setSaveError(null);
     try {
+      const permanentUri = await saveScanImage(params.uri);
       const session = await ScanSession.load(params.sessionId);
-      if (session && params.uri) {
-        await session.addPage({
-          uri: params.uri,
-          width: parseInt(params.width || '0', 10),
-          height: parseInt(params.height || '0', 10),
-        });
+      if (!session) {
+        throw new Error('Scan session not found.');
+      }
+      await session.addPage({
+        uri: permanentUri,
+        width: parseInt(params.width || '0', 10),
+        height: parseInt(params.height || '0', 10),
+      });
+      // Clean up the temporary camera cache file
+      try {
+        await FileSystem.deleteAsync(params.uri, { idempotent: true });
+      } catch {
+        // Non-critical
       }
       router.back();
     } catch (e) {
-      console.warn('Failed to save page:', e);
+      const msg = e instanceof Error ? e.message : 'Failed to save scan image.';
+      setSaveError(msg);
       setSaving(false);
     }
   }, [saving, params, router]);
@@ -147,6 +159,13 @@ export default function PreviewScreen() {
               />
             ))}
           </ScrollView>
+        </View>
+      )}
+
+      {/* Save Error */}
+      {saveError && (
+        <View style={styles.saveErrorContainer}>
+          <Text style={styles.saveErrorText}>{saveError}</Text>
         </View>
       )}
 
@@ -274,5 +293,20 @@ const styles = StyleSheet.create({
   useText: {
     ...Typography.button,
     color: '#000000',
+  },
+  saveErrorContainer: {
+    position: 'absolute',
+    bottom: 120,
+    left: Spacing.base,
+    right: Spacing.base,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+  },
+  saveErrorText: {
+    ...Typography.body,
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
 });

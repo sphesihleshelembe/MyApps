@@ -21,6 +21,7 @@ import { ArrowLeft, Zap, ZapOff, Image as ImageIcon, ScanLine } from 'lucide-rea
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius } from '@/theme';
 import { ScanSession } from '@/services/scanner/ScanSession';
+import { saveScanImage } from '@/services/scanner/imageStorage';
 import { CameraOverlay } from '@/components/scanner/CameraOverlay';
 import { CaptureButton } from '@/components/scanner/CaptureButton';
 import { PermissionView } from '@/components/scanner/PermissionView';
@@ -38,6 +39,7 @@ export default function ScannerScreen() {
   const [capturing, setCapturing] = useState(false);
   const [importingGallery, setImportingGallery] = useState(false);
   const [pages, setPages] = useState<ScanPage[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -100,10 +102,11 @@ export default function ScannerScreen() {
 
   const handleGallery = useCallback(async () => {
     if (capturing || importingGallery || !sessionRef.current) return;
+    setImportError(null);
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Linking.openSettings();
+      setImportError('Photo library permission is required to import images.');
       return;
     }
 
@@ -118,8 +121,9 @@ export default function ScannerScreen() {
 
       if (!result.canceled && result.assets.length > 0) {
         for (const asset of result.assets) {
+          const permanentUri = await saveScanImage(asset.uri);
           await sessionRef.current.addPage({
-            uri: asset.uri,
+            uri: permanentUri,
             width: asset.width,
             height: asset.height,
           });
@@ -127,7 +131,8 @@ export default function ScannerScreen() {
         setPages(sessionRef.current.getPages());
       }
     } catch (e) {
-      console.warn('Gallery import failed:', e);
+      const msg = e instanceof Error ? e.message : 'Failed to import image(s).';
+      setImportError(msg);
     } finally {
       setImportingGallery(false);
     }
@@ -209,6 +214,13 @@ export default function ScannerScreen() {
           )}
         </TouchableOpacity>
       </SafeAreaView>
+
+      {/* Import Error Banner */}
+      {importError && (
+        <View style={styles.importErrorBanner}>
+          <Text style={styles.importErrorText}>{importError}</Text>
+        </View>
+      )}
 
       {/* Bottom Controls */}
       <SafeAreaView style={styles.bottomBar} edges={['bottom']}>
@@ -382,5 +394,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  importErrorBanner: {
+    position: 'absolute',
+    top: 90,
+    left: Spacing.base,
+    right: Spacing.base,
+    backgroundColor: 'rgba(239, 68, 68, 0.95)',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    zIndex: 50,
+  },
+  importErrorText: {
+    ...Typography.body,
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
 });
