@@ -10,8 +10,8 @@ export const QUICK_ACTIONS: QuickAction[] = [
   },
   {
     id: 'import',
-    label: 'Import',
-    icon: 'file-up',
+    label: 'PDF to Img',
+    icon: 'image',
     color: '#7C3AED',
     route: '/documents',
   },
@@ -38,13 +38,6 @@ export const POPULAR_TOOLS: Tool[] = [
     description: 'Capture and enhance documents',
     icon: 'scan',
     category: 'scan',
-  },
-  {
-    id: 'img-to-pdf',
-    label: 'Image to PDF',
-    description: 'Convert photos to PDF',
-    icon: 'image',
-    category: 'pdf',
   },
   {
     id: 'ocr',
@@ -85,13 +78,7 @@ export const DOCUMENT_TOOLS: Tool[] = [
     icon: 'scan',
     category: 'scan',
   },
-  {
-    id: 'img-to-pdf',
-    label: 'Image to PDF',
-    description: 'Convert photos or images to PDF',
-    icon: 'image',
-    category: 'pdf',
-  },
+
   {
     id: 'ocr',
     label: 'OCR — Extract Text',
@@ -128,13 +115,8 @@ export const DOCUMENT_TOOLS: Tool[] = [
     icon: 'file-image',
     category: 'convert',
   },
-  {
-    id: 'rotate-pdf',
-    label: 'Rotate & Crop',
-    description: 'Fix orientation and trim pages',
-    icon: 'rotate-cw',
-    category: 'pdf',
-  },
+ 
+
 ];
 
 export const RECENT_FILES_PLACEHOLDER: RecentFile[] = [
@@ -160,6 +142,9 @@ export const RECENT_FILES_PLACEHOLDER: RecentFile[] = [
     createdAt: '3 days ago',
   },
 ];
+
+
+
 
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   {

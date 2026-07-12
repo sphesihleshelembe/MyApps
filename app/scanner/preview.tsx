@@ -99,7 +99,7 @@ export default function PreviewScreen() {
     },
     [params.sessionId]
   );
-
+ 
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: '#000000' }]}
@@ -119,7 +119,7 @@ export default function PreviewScreen() {
         <Text style={styles.topBarTitle} accessibilityRole="header">
           Preview
         </Text>
-        <View style={styles.topBarSpacer} />
+<View style={styles.topBarSpacer} />
       </View>
 
       {/* Image Preview */}

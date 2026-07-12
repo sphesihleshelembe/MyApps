@@ -31,6 +31,7 @@ import { ScanSession } from '@/services/scanner/ScanSession';
 import { generatePdf, timestampName } from '@/services/pdf/PdfService';
 import { saveDocument } from '@/services/documents/DocumentStore';
 import type { ScanPage } from '@/types';
+import { SquarePen } from 'lucide-react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMN_COUNT = 2;
@@ -39,6 +40,7 @@ const GRID_GAP = Spacing.sm;
 const TILE_WIDTH =
   (SCREEN_WIDTH - GRID_PADDING * 2 - GRID_GAP * (COLUMN_COUNT - 1)) / COLUMN_COUNT;
 const TILE_HEIGHT = TILE_WIDTH * 1.414;
+
 
 export default function ReviewScanScreen() {
   const router = useRouter();
@@ -54,6 +56,10 @@ export default function ReviewScanScreen() {
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [saveProgress, setSaveProgress] = useState('');
   const inputRef = useRef<TextInput>(null);
+  const [selectedPageIndex, setSelectedPageIndex] = useState(0);
+
+
+  
 
   useEffect(() => {
     if (saveModalVisible) {
@@ -190,14 +196,21 @@ export default function ReviewScanScreen() {
   const renderPageTile = useCallback(
     ({ item, index }: { item: ScanPage; index: number }) => {
       const isDeleting = deletingId === item.id;
+
+
       return (
-        <View
-          style={[
-            styles.tile,
-            { backgroundColor: colors.surface },
-            Shadows.sm,
-          ]}
-        >
+       <TouchableOpacity
+  onPress={() => setSelectedPageIndex(index)}
+        style={[
+          styles.tile,
+          {
+            backgroundColor: colors.surface,
+            borderWidth: index === selectedPageIndex ? 3 : 0,
+            borderColor: colors.primary,
+          },
+          Shadows.sm,
+        ]}
+     >    
           <Image
             source={{ uri: item.uri }}
             style={styles.tileImage}
@@ -213,7 +226,8 @@ export default function ReviewScanScreen() {
               ]}
             >
               <Text style={styles.pageNumberText}>{index + 1}</Text>
-            </View>
+             </View>
+            
             <TouchableOpacity
               style={[
                 styles.deleteTileButton,
@@ -235,14 +249,25 @@ export default function ReviewScanScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+</TouchableOpacity>
       );
     },
-    [colors, deletingId, handleDeleteConfirm]
+    [colors, deletingId, handleDeleteConfirm, selectedPageIndex,]
   );
 
   const keyExtractor = useCallback((item: ScanPage) => item.id, []);
 
+const handleEdit = () => {
+  if (!pages[selectedPageIndex]) return;
+
+  router.push({
+    pathname: '/edit-scan',
+    params: {
+      uri: pages[selectedPageIndex].uri,
+      index: selectedPageIndex.toString(),
+    },
+  });
+};
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
@@ -272,7 +297,19 @@ export default function ReviewScanScreen() {
           )}
         </View>
 
-        <View style={styles.topBarSpacer} />
+           <TouchableOpacity
+  style={styles.topBarButton}
+  onPress={handleEdit}
+  hitSlop={12}
+  accessibilityLabel="Edit scan"
+  accessibilityRole="button"
+>
+<SquarePen
+  size={22}
+  color={colors.text}
+  strokeWidth={2}
+/>
+</TouchableOpacity>
       </View>
 
       {/* Body */}
@@ -365,8 +402,10 @@ export default function ReviewScanScreen() {
               disabled: finishing || pages.length === 0,
             }}
           >
-            {finishing ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+            {finishing ? (<ArrowLeft
+  size={22}
+  color={colors.text}
+/>
             ) : (
               <>
                 <FileCheck size={18} color="#FFFFFF" strokeWidth={2} />
@@ -554,7 +593,7 @@ const styles = StyleSheet.create({
   tile: {
     width: TILE_WIDTH,
     borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
+    
   },
   tileImage: {
     width: '100%',

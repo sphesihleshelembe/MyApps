@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,20 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Bell, FileText, Scan, Layers, FileUp, QrCode } from 'lucide-react-native';
+import { FileText, Scan, Layers, Image as ImageIcon, QrCode } from 'lucide-react-native';
 import * as LucideIcons from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius, Shadows } from '@/theme';
 import { Card, SectionHeader, SearchBar } from '@/components';
 import { QUICK_ACTIONS, POPULAR_TOOLS, RECENT_FILES_PLACEHOLDER, TOOL_ICON_COLORS } from '@/constants/data';
+import { listDocuments, deleteDocument } from '@/services/documents/DocumentStore';
+import { useFocusEffect } from '@react-navigation/native';
+
+
 
 const QUICK_ACTION_ICONS: Record<string, React.ElementType> = {
   scan: Scan,
-  'file-up': FileUp,
+  'image': ImageIcon,
   'qr-code': QrCode,
   layers: Layers,
 };
@@ -41,6 +45,25 @@ export default function HomeScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [savedDocs, setSavedDocs] = useState<StoredDocument[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+
+const loadDocs = useCallback(async () => {
+  try {
+    const docs = await listDocuments();
+    setSavedDocs(docs);
+  } catch {
+    // ignore
+  } finally {
+    setLoadingDocs(false);
+  }
+}, []);
+
+useFocusEffect(
+  React.useCallback(() => {
+    loadDocs();
+  }, [loadDocs])
+);
   const handleQuickAction = (actionId: string) => {
     if (actionId === 'scan') {
       router.push('/scanner');
@@ -65,12 +88,7 @@ export default function HomeScreen() {
             </View>
             <Text style={[styles.brandName, { color: colors.text }]}>Noviq</Text>
           </View>
-          <TouchableOpacity
-            style={[styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-            hitSlop={8}
-          >
-            <Bell size={18} color={colors.text} strokeWidth={2} />
-          </TouchableOpacity>
+          
         </View>
 
         {/* Greeting */}
@@ -135,7 +153,11 @@ export default function HomeScreen() {
 
         {/* Popular Tools */}
         <View style={styles.section}>
-          <SectionHeader title="Popular Tools" actionLabel="See all" onAction={() => {}} />
+        <SectionHeader 
+  title="Popular Tools" 
+  actionLabel="See all" 
+  onAction={() => router.push('/documents')} 
+/>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -190,53 +212,65 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-        {/* Recent Files */}
-        <View style={styles.section}>
-          <SectionHeader
-            title="Recent Files"
-            actionLabel="View all"
-            onAction={() => {}}
-          />
-          {RECENT_FILES_PLACEHOLDER.map((file) => (
-            <TouchableOpacity
-              key={file.id}
-              style={[
-                styles.fileRow,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                },
-                Shadows.sm,
-              ]}
-              activeOpacity={0.75}
-            >
-              <View
-                style={[
-                  styles.fileIconContainer,
-                  { backgroundColor: hexToRgba(colors.primary, 0.09) },
-                ]}
-              >
-                <FileText size={20} color={colors.primary} strokeWidth={2} />
-              </View>
-              <View style={styles.fileInfo}>
-                <Text
-                  style={[styles.fileName, { color: colors.text }]}
-                  numberOfLines={1}
-                >
-                  {file.name}
-                </Text>
-                <Text style={[styles.fileMeta, { color: colors.textSecondary }]}>
-                  {file.size} — {file.createdAt}
-                </Text>
-              </View>
-              <LucideIcons.MoreVertical
-                size={18}
-                color={colors.textDisabled}
-                strokeWidth={2}
-              />
-            </TouchableOpacity>
-          ))}
+       {/* Recent Files */}
+<View style={styles.section}>
+ <SectionHeader
+  title="Recent Files"
+  actionLabel="View all"
+  onAction={() => router.push('/documents')}
+/>
+
+  {savedDocs.length === 0 ? (
+    <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+      No recent files yet.
+    </Text>
+  ) : (
+    savedDocs.slice(0, 5).map((file) => (
+      <TouchableOpacity
+        key={file.id}
+        style={[
+          styles.fileRow,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+          },
+          Shadows.sm,
+        ]}
+        activeOpacity={0.75}
+      >
+        <View
+          style={[
+            styles.fileIconContainer,
+            { backgroundColor: hexToRgba(colors.primary, 0.09) },
+          ]}
+        >
+          <FileText size={20} color={colors.primary} strokeWidth={2} />
         </View>
+
+        <View style={styles.fileInfo}>
+          <Text
+            style={[styles.fileName, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {file.name}
+          </Text>
+
+          <Text
+            style={[styles.fileMeta, { color: colors.textSecondary }]}
+          >
+            {file.size} — {file.createdAt}
+          </Text>
+        </View>
+
+        <LucideIcons.MoreVertical
+          size={18}
+          color={colors.textDisabled}
+          strokeWidth={2}
+        />
+      </TouchableOpacity>
+    ))
+  )}
+</View>
 
         {/* Tips Card */}
         <View style={[styles.section, styles.lastSection]}>

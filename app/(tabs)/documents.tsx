@@ -20,6 +20,7 @@ import { DOCUMENT_TOOLS, TOOL_ICON_COLORS } from '@/constants/data';
 import { listDocuments, deleteDocument } from '@/services/documents/DocumentStore';
 import type { StoredDocument } from '@/types';
 
+
 const CATEGORY_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'scan', label: 'Scan' },

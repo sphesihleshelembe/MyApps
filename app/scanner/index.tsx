@@ -106,7 +106,7 @@ export default function ScannerScreen() {
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      setImportError('Photo library permission is required to import images.');
+      Linking.openSettings();
       return;
     }
 
@@ -123,7 +123,7 @@ export default function ScannerScreen() {
         for (const asset of result.assets) {
           const permanentUri = await saveScanImage(asset.uri);
           await sessionRef.current.addPage({
-            uri: permanentUri,
+            uri: asset.uri,
             width: asset.width,
             height: asset.height,
           });
@@ -131,8 +131,7 @@ export default function ScannerScreen() {
         setPages(sessionRef.current.getPages());
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to import image(s).';
-      setImportError(msg);
+      console.warn('Gallery import failed:', e);
     } finally {
       setImportingGallery(false);
     }
@@ -394,21 +393,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
-  },
-  importErrorBanner: {
-    position: 'absolute',
-    top: 90,
-    left: Spacing.base,
-    right: Spacing.base,
-    backgroundColor: 'rgba(239, 68, 68, 0.95)',
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    zIndex: 50,
-  },
-  importErrorText: {
-    ...Typography.body,
-    color: '#FFFFFF',
-    textAlign: 'center',
   },
 });
