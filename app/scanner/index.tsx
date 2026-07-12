@@ -17,6 +17,7 @@ import {
   type FlashMode,
 } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { ArrowLeft, Zap, ZapOff, Image as ImageIcon, ScanLine } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius } from '@/theme';
@@ -120,14 +121,24 @@ export default function ScannerScreen() {
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        for (const asset of result.assets) {
-          const permanentUri = await saveScanImage(asset.uri);
-          await sessionRef.current.addPage({
-            uri: asset.uri,
-            width: asset.width,
-            height: asset.height,
-          });
-        }
+       for (const asset of result.assets) {
+  const converted = await ImageManipulator.manipulateAsync(
+    asset.uri,
+    [],
+    {
+      compress: 1,
+      format: ImageManipulator.SaveFormat.JPEG,
+    }
+  );
+
+  const permanentUri = await saveScanImage(converted.uri);
+
+  await sessionRef.current.addPage({
+    uri: permanentUri,
+    width: converted.width,
+    height: converted.height,
+  });
+}
         setPages(sessionRef.current.getPages());
       }
     } catch (e) {

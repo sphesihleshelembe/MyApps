@@ -261,10 +261,10 @@ const handleEdit = () => {
   if (!pages[selectedPageIndex]) return;
 
   router.push({
-    pathname: '/edit-scan',
+    pathname: "/edit-scan",
     params: {
-      uri: pages[selectedPageIndex].uri,
-      index: selectedPageIndex.toString(),
+      sessionId,
+      pageId: pages[selectedPageIndex].id,
     },
   });
 };

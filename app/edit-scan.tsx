@@ -1,39 +1,167 @@
-import React from 'react';
-import { View, Text } from 'react-native';
+﻿
+import { View, Text,  ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { RotateCcw, RotateCw } from 'lucide-react-native';
+import { Scissors, Palette } from 'lucide-react-native';
+import * as IM from 'expo-image-manipulator';
+import { ScanSession } from '@/services/scanner/ScanSession';
+
 
 
 
 export default function EditScan() {
 
-   const params = useLocalSearchParams();
-   const imageUri = params.uri as string;
-   const router = useRouter();
+
+  const router = useRouter();
+  const params = useLocalSearchParams();
+
+  const sessionId = params.sessionId as string;
+  const pageId = params.pageId as string;
+
+  const [currentUri, setCurrentUri] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+
+    useEffect(() => {
+    async function loadPage() {
+      try {
+        const session = await ScanSession.load(sessionId);
+
+        if (!session) return;
+
+        const page = session.getPages().find(
+          p => p.id === pageId
+        );
+
+        if (page) {
+          setCurrentUri(page.uri);
+        }
+      } catch (e) {
+        console.log(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPage();
+  }, [sessionId, pageId]);
+
+    const handleDone = async () => {
+    try {
+      const session = await ScanSession.load(sessionId);
+
+      if (!session) return;
+
+      await session.updatePage(pageId, {
+        uri: currentUri,
+      });
+
+      router.back();
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
 
+  const rotateImage = async (degrees: number) => {
+  try {
+    setIsProcessing(true);
 
+    const result = await ImageManipulator.manipulateAsync(
+      currentUri,
+      [{ rotate: degrees }],
+      {
+        compress: 1,
+        format: ImageManipulator.SaveFormat.JPEG,
+      }
+    );
+
+    setCurrentUri(result.uri);
+  } catch (error) {
+    console.log('Rotate failed:', error);
+  } finally {
+    setIsProcessing(false);
+  }
+};
   return (
   <View style={styles.container}>
-    <View style={styles.header}>
-      <TouchableOpacity
-        onPress={() => router.back()}
-        style={styles.backButton}
-      >
-        <ArrowLeft size={22} color="#000" strokeWidth={2} />
-      </TouchableOpacity>
+   <View style={styles.header}>
+  <TouchableOpacity
+    onPress={() => router.back()}
+    style={styles.backButton}
+  >
+    <ArrowLeft size={24} />
+  </TouchableOpacity>
+
+ 
+
+  <TouchableOpacity
+    onPress={handleDone}
+    style={styles.doneButton}
+  >
+    <Text style={styles.doneText}>Done</Text>
+  </TouchableOpacity>
+</View>
+
+ {currentUri ? (
+  <Image
+    source={{ uri: currentUri }}
+    style={styles.image}
+    resizeMode="contain"
+  />
+) : (
+  <Text>Loading...</Text>
+)}
+
+  <View style={styles.toolbar}>
+
+    {/* Rotate */}
+    <TouchableOpacity
+      style={styles.toolButton}
+      onPress={() => rotateImage(90)}
+      disabled={isProcessing}
+    >
+      <RotateCw size={24} color="#000" />
+      <Text style={styles.toolLabel}>Rotate</Text>
+    </TouchableOpacity>
+
+    {/* Crop */}
+    <TouchableOpacity
+      style={styles.toolButton}
+      onPress={() =>
+  router.push({
+    pathname: "/scanner/cropscan",
+    params: {
+      sessionId,
+      pageId,
+    },
+  })
+}
+      disabled={isProcessing}
+    >
+      <Scissors size={24} color="#000" />
+      <Text style={styles.toolLabel}>Crop</Text>
+    </TouchableOpacity>
+
+    {/* Filters - remove later */}
+    <TouchableOpacity
+      style={styles.toolButton}
+      disabled={isProcessing}
+    >
+      <Palette size={24} color="#000" />
+      <Text style={styles.toolLabel}>Filters</Text>
+    </TouchableOpacity>
+
     </View>
-
-    <Image
-      source={{ uri: imageUri }}
-      style={styles.image}
-      resizeMode="contain"
-    />
-  </View>
-)};
-
-const styles = StyleSheet.create({
+</View>
+);
+}
+  const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -57,5 +185,25 @@ const styles = StyleSheet.create({
   image: {
     flex: 1,
     width: '100%',
+  },
+
+  toolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+  },
+
+  toolButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+
+  toolLabel: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

@@ -66,6 +66,24 @@ export class ScanSession {
     await this.persist();
     return newPage;
   }
+  async updatePage(
+  pageId: string,
+  updates: Partial<Omit<ScanPage, 'id' | 'capturedAt'>>
+): Promise<void> {
+  const index = this.data.pages.findIndex(page => page.id === pageId);
+
+  if (index === -1) {
+    throw new Error('Page not found.');
+  }
+
+  this.data.pages[index] = {
+    ...this.data.pages[index],
+    ...updates,
+  };
+
+  this.data.updatedAt = Date.now();
+  await this.persist();
+}
 
   async removePage(pageId: string): Promise<void> {
     this.data.pages = this.data.pages.filter((p) => p.id !== pageId);

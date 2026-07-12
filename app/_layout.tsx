@@ -11,6 +11,7 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,16 +36,35 @@ export default function RootLayout() {
     return null;
   }
 
-  return (
-    <>
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="scanner/index" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="scanner/preview" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="scanner/review" options={{ headerShown: false, animation: 'slide_from_right' }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-    </>
-  );
-}
+ return (
+  <GestureHandlerRootView style={{ flex: 1 }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="scanner/index"
+        options={{ headerShown: false, animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+      name="scanner/cropscan"
+      options={{ headerShown: false, animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="scanner/preview"
+        options={{ headerShown: false, animation: 'fade' }}
+      />
+      <Stack.Screen
+        name="scanner/review"
+        options={{ headerShown: false, animation: 'slide_from_right' }}
+      />
+      <Stack.Screen name="+not-found" />
+    </Stack>
+
+    <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+  </GestureHandlerRootView>
+);
+};
