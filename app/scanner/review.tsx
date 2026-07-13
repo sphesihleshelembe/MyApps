@@ -258,7 +258,7 @@ export default function ReviewScanScreen() {
   const keyExtractor = useCallback((item: ScanPage) => item.id, []);
 
 const handleEdit = () => {
-  if (!pages[selectedPageIndex]) return;
+  if (!pages[selectedPageIndex]) retotateurn;
 
   router.push({
     pathname: "/edit-scan",

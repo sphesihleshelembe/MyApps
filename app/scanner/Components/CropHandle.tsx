@@ -1,7 +1,7 @@
 import React from "react";
 import Animated, {
+  SharedValue,
   useAnimatedStyle,
-  useSharedValue,
 } from "react-native-reanimated";
 import {
   Gesture,
@@ -9,32 +9,24 @@ import {
 } from "react-native-gesture-handler";
 
 interface CropHandleProps {
-  x: number;
-  y: number;
-  onMove: (x: number, y: number) => void;
+  x: SharedValue<number>;
+  y: SharedValue<number>;
 }
 
 export default function CropHandle({
   x,
   y,
-  onMove,
 }: CropHandleProps) {
-  const translateX = useSharedValue(x);
-  const translateY = useSharedValue(y);
-
   const pan = Gesture.Pan()
     .onUpdate((event) => {
-      translateX.value = x + event.translationX;
-      translateY.value = y + event.translationY;
-    })
-    .onEnd(() => {
-      onMove(translateX.value, translateY.value);
+      x.value += event.changeX;
+      y.value += event.changeY;
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
+      { translateX: x.value },
+      { translateY: y.value },
     ],
   }));
 
