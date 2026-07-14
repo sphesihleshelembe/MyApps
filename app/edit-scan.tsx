@@ -3,12 +3,16 @@ import { View, Text,  ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { TouchableOpacity, Image, StyleSheet } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { RotateCcw, RotateCw } from 'lucide-react-native';
 import { Scissors, Palette } from 'lucide-react-native';
-import * as IM from 'expo-image-manipulator';
+
 import { ScanSession } from '@/services/scanner/ScanSession';
+import { useFocusEffect } from "@react-navigation/native";
+import * as FileSystem from "expo-file-system/legacy";
+import { saveScanImage } from '@/services/scanner/imageStorage';
+
 
 
 
@@ -27,7 +31,8 @@ export default function EditScan() {
   const [isProcessing, setIsProcessing] = useState(false);
   
 
-    useEffect(() => {
+  useFocusEffect(
+  useCallback(() => {
     async function loadPage() {
       try {
         const session = await ScanSession.load(sessionId);
@@ -49,8 +54,8 @@ export default function EditScan() {
     }
 
     loadPage();
-  }, [sessionId, pageId]);
-
+  }, [sessionId, pageId])
+  );
     const handleDone = async () => {
     try {
       const session = await ScanSession.load(sessionId);
@@ -68,7 +73,7 @@ export default function EditScan() {
   };
 
 
-  const rotateImage = async (degrees: number) => {
+ const rotateImage = async (degrees: number) => {
   try {
     setIsProcessing(true);
 
@@ -81,9 +86,20 @@ export default function EditScan() {
       }
     );
 
-    setCurrentUri(result.uri);
-  } catch (error) {
-    console.log('Rotate failed:', error);
+    const permanentUri = await saveScanImage(result.uri);
+
+    setCurrentUri(permanentUri);
+
+    try {
+      await FileSystem.deleteAsync(result.uri, {
+        idempotent: true,
+      });
+    } catch {
+      // Ignore cleanup errors
+    }
+
+  } catch (e) {
+    console.log(e);
   } finally {
     setIsProcessing(false);
   }

@@ -4,6 +4,10 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScanSession } from "@/services/scanner/ScanSession";
 import { LayoutChangeEvent } from "react-native";
 import CropOverlay from "./Components/CropOverlay";
+import * as ImageManipulator from "expo-image-manipulator";
+import ImageEditor from "../../services/scanner/ImageEditor";
+import { calculateCropRect } from "../../services/scanner/ImageMath";
+import { saveScanImage } from '@/services/scanner/imageStorage';
 
 
 export default function Cropscan(){
@@ -17,6 +21,8 @@ const pageId = params.pageId as string;
 const [imageUri, setImageUri] = useState("");
 const [loading, setLoading] = useState(true);
 
+const [isApplying, setIsApplying] = useState(false);
+
 
 const [imageLayout, setImageLayout] = useState({
   x: 0,
@@ -24,7 +30,55 @@ const [imageLayout, setImageLayout] = useState({
   width: 0,
   height: 0,
 });
+const [displayedImage, setDisplayedImage] = useState({
+  left: 0,
+  top: 0,
+  width: 0,
+  height: 0,
+});
 
+const [cropArea, setCropArea] = useState({
+  left: 0,
+  top: 0,
+  width: 0,
+  height: 0,
+});
+console.log(cropArea);
+
+const [imageSize, setImageSize] = useState({
+  width: 0,
+  height: 0,
+});
+
+useEffect(() => {
+  if (
+    imageLayout.width === 0 ||
+    imageLayout.height === 0 ||
+    imageSize.width === 0 ||
+    imageSize.height === 0
+  ) {
+    return;
+  }
+
+  const scale = Math.min(
+    imageLayout.width / imageSize.width,
+    imageLayout.height / imageSize.height
+  );
+
+  const width = imageSize.width * scale;
+  const height = imageSize.height * scale;
+
+  setDisplayedImage({
+    left: (imageLayout.width - width) / 2,
+    top: (imageLayout.height - height) / 2,
+    width,
+    height,
+  });
+}, [imageLayout, imageSize]);
+
+useEffect(() => {
+  console.log("Stored image size:", imageSize);
+}, [imageSize]);
 
 useEffect(() => {
   async function loadPage() {
@@ -39,6 +93,19 @@ useEffect(() => {
 
       if (page) {
         setImageUri(page.uri);
+
+const imageInfo = await ImageManipulator.manipulateAsync(
+  page.uri,
+  [],
+  {}
+);
+
+setImageSize({
+  width: imageInfo.width,
+  height: imageInfo.height,
+});
+
+console.log("Image size:", imageInfo.width, imageInfo.height);
       }
     } finally {
       setLoading(false);
@@ -62,6 +129,56 @@ if (loading) {
   );
 }
 
+const handleApply = async () => {
+  if (isApplying) return;
+
+  setIsApplying(true);
+
+  console.log("Displayed Image:", displayedImage);
+console.log("Image Layout:", imageLayout);
+console.log("Crop Area:", cropArea);
+console.log("Original Image:", imageSize);
+
+  try {
+    const crop = calculateCropRect({
+
+      imageWidth: imageSize.width,
+      imageHeight: imageSize.height,
+     displayWidth: displayedImage.width,
+     displayHeight: displayedImage.height,
+      cropLeft: cropArea.left,
+      cropTop: cropArea.top,
+      cropWidth: cropArea.width,
+      cropHeight: cropArea.height,
+    });
+
+    const newUri = await ImageEditor.cropImage({
+      uri: imageUri,
+      originX: crop.originX,
+      originY: crop.originY,
+      width: crop.width,
+      height: crop.height,
+    });
+
+   const session = await ScanSession.load(sessionId);
+
+if (!session) {
+  throw new Error("Failed to load scan session.");
+}
+
+await session.updatePage(pageId, {
+  uri: newUri,
+});
+console.log("Saved new URI:", newUri);
+router.back();
+  } catch (error) {
+    console.error("Crop failed:", error);
+  } finally {
+    setIsApplying(false);
+  }
+};
+
+
 return (
   <View style={{ flex: 1, backgroundColor: "#fff" }}>
     <View
@@ -77,9 +194,12 @@ return (
         <Text>Cancel</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity>
-        <Text>Apply</Text>
-      </TouchableOpacity>
+    <TouchableOpacity
+  onPress={handleApply}
+  disabled={isApplying}
+>
+  <Text>Apply</Text>
+</TouchableOpacity>
     </View>
 
    <View
@@ -96,14 +216,23 @@ return (
   }}
 >
   <Image
-    source={{ uri: imageUri }}
-    style={{ flex: 1 }}
-    resizeMode="contain"
-  />
+  source={{ uri: imageUri }}
+  style={{
+    position: "absolute",
+    left: displayedImage.left,
+    top: displayedImage.top,
+    width: displayedImage.width,
+    height: displayedImage.height,
+  }}
+  resizeMode="contain"
+/>
 
-  <CropOverlay
-  imageWidth={imageLayout.width}
-  imageHeight={imageLayout.height}
+ <CropOverlay
+  imageWidth={displayedImage.width}
+  imageHeight={displayedImage.height}
+  imageLeft={displayedImage.left}
+  imageTop={displayedImage.top}
+  onCropChange={setCropArea}
 />
   
 </View>

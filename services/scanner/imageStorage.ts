@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
+
 const SCAN_DIR = `${FileSystem.documentDirectory}scans/`;
 
 async function ensureDir(): Promise<void> {

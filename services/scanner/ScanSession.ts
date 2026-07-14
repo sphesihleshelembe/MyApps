@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ScanPage, ScanSessionData } from '@/types';
+import {  saveScanImage } from "../../services/scanner/imageStorage";
 
 const STORAGE_KEY_PREFIX = '@noviq/scan_session/';
 
