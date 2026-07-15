@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["NoviqVisionModule"]
+  },
+  "android": {
+    "modules": ["com.shelembestudios.noviq.vision.NoviqVisionModule"]
+  }
+}

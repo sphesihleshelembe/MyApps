@@ -167,6 +167,15 @@ export default function EditScan() {
     {/* Filters - remove later */}
     <TouchableOpacity
       style={styles.toolButton}
+     onPress={() =>
+  router.push({
+    pathname: "/scanner/filterScan",
+    params: {
+      sessionId,
+      pageId,
+    },
+  })
+}
       disabled={isProcessing}
     >
       <Palette size={24} color="#000" />
