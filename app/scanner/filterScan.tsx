@@ -12,12 +12,11 @@ import { useFocusEffect } from "@react-navigation/native";
 import * as FileSystem from "expo-file-system/legacy";
 import { saveScanImage } from '@/services/scanner/imageStorage';
 import {
-  Grayscale,
-} from "react-native-color-matrix-image-filters";
-import {
+
   VisionEngine,
   FilterType,
 } from "@/services/scanner/Filters";
+import NoviqVision from "@/modules/noviq-vision/src";
 
 export default function filterScan() {
 
@@ -30,14 +29,19 @@ export default function filterScan() {
 
   const [currentUri, setCurrentUri] = useState('');
   const [previewUri, setPreviewUri] = useState("");
+  const [originalUri, setOriginalUri] = useState("");
   const [loading, setLoading] = useState(true);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isFiltering, setIsFiltering] = useState(false);
 
  
-  
-
+  React.useEffect(() => {
+  try {
+  } catch (e) {
+    console.error(e);
+  }
+}, []);
   useFocusEffect(
   useCallback(() => {
     async function loadPage() {
@@ -51,9 +55,10 @@ export default function filterScan() {
         );
 
         if (page) {
-  setCurrentUri(page.uri);
-  setPreviewUri(page.uri);
-}
+setCurrentUri(page.uri);
+setOriginalUri(page.uri);
+setPreviewUri(page.uri);
+        }
       } catch (e) {
         console.log(e);
       } finally {
@@ -71,7 +76,8 @@ export default function filterScan() {
       if (!session) return;
 
       await session.updatePage(pageId, {
-        uri: currentUri,
+      uri: previewUri,
+      
       });
 
       router.back();
@@ -137,17 +143,25 @@ const handleFilterPress = async (filter: FilterType) => {
 
     setSelectedFilter(filter);
 
-    const processedUri = await VisionEngine.applyFilter(
-      currentUri,
-      filter
-    );
+   const processedUri = await VisionEngine.applyFilter(
+  originalUri,
+  filter
+);
+
+console.log("Original:", originalUri);
+console.log("Processed:", processedUri);
+
 
     setPreviewUri(processedUri);
-  } catch (error) {
-    console.log("Filter error:", error);
-  } finally {
-    setIsFiltering(false);
+ } catch (error) {
+  console.error("Filter error:", error);
+
+  if (error instanceof Error) {
+    console.error(error.stack);
   }
+} finally {
+  setIsFiltering(false);
+}
 };
 
 const renderPreview = () => {
@@ -156,19 +170,18 @@ const renderPreview = () => {
   }
 
   switch (selectedFilter) {
-    case "Grayscale":
+  case "Grayscale":
   return (
-    <Grayscale style={{ flex: 1 }}>
-      <Image
-        source={{ uri: previewUri }}
-        style={{
-          width: "100%",
-          height: "100%",
-        }}
-        resizeMode="contain"
-      />
-    </Grayscale>
+    <Image
+      source={{ uri: previewUri }}
+      style={{
+        width: "100%",
+        height: "100%",
+      }}
+      resizeMode="contain"
+    />
   );
+ 
 
     default:
       return (

@@ -1,7 +1,11 @@
 import { FilterType } from "./FilterTypes";
-import NativeProcessor from "./NativeProcessor";
+import NativeProcessor from "./NativeProcessor";  
+
+
+
 
 export default class ImageProcessor {
+
   static async process(
     imageUri: string,
     filter: FilterType
@@ -26,7 +30,9 @@ export default class ImageProcessor {
         return imageUri;
     }
   }
-
+  private static async original(uri: string): Promise<string> {
+  return uri;
+}
   private static async auto(uri: string): Promise<string> {
   return NativeProcessor.auto(uri);
 }
