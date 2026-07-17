@@ -18,6 +18,7 @@ import { ScanSession } from '@/services/scanner/ScanSession';
 import { saveScanImage } from '@/services/scanner/imageStorage';
 import { ScanThumbnail } from '@/components/scanner/ScanThumbnail';
 import type { ScanPage } from '@/types';
+import NoviqVision from '@/modules/noviq-vision/src';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -34,6 +35,29 @@ export default function PreviewScreen() {
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [documentCorners, setDocumentCorners] = useState<any[]>([]);
+
+  useEffect(() => {
+  async function detect() {
+    if (!params.uri) return;
+
+    try {
+      const result = await NoviqVision.detectDocument(params.uri);
+
+      console.log("Preview Detection:", result);
+
+      if (result.found) {
+        setDocumentCorners(result.corners);
+      }
+
+    } catch (error) {
+      console.error("Detection failed:", error);
+    }
+  }
+
+  detect();
+
+}, [params.uri]);
 
   useFocusEffect(
     useCallback(() => {

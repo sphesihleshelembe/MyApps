@@ -139,11 +139,16 @@ const FILTER_LABELS: Record<FilterType, string> = {
 
 const [selectedFilter, setSelectedFilter] = useState("Original");
 
+
 const handleFilterPress = async (filter: FilterType) => {
   try {
     setIsFiltering(true);
 
     setSelectedFilter(filter);
+
+ const detection = await NoviqVision.detectDocument(originalUri);
+
+console.log("Document Detection:", detection);
 
    const processedUri = await VisionEngine.applyFilter(
   originalUri,

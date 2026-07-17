@@ -59,6 +59,10 @@ AsyncFunction("magicColor") { imagePath: String ->
 }
 AsyncFunction("detectDocument") { imagePath: String ->
 
+    if (!OpenCVLoader.initDebug()) {
+        throw Exception("OpenCV initialization failed")
+    }
+
     val context = appContext.reactContext
         ?: throw Exception("React context is not available.")
 
