@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  ImageStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -19,8 +20,10 @@ import { saveScanImage } from '@/services/scanner/imageStorage';
 import { ScanThumbnail } from '@/components/scanner/ScanThumbnail';
 import type { ScanPage } from '@/types';
 import NoviqVision from '@/modules/noviq-vision/src';
+import Svg, { Polygon } from 'react-native-svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const PREVIEW_HEIGHT = Dimensions.get('window').height * 0.55;
 
 export default function PreviewScreen() {
   const router = useRouter();
@@ -36,6 +39,10 @@ export default function PreviewScreen() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [documentCorners, setDocumentCorners] = useState<any[]>([]);
+  const [imageLayout, setImageLayout] = useState({
+  width: 0,
+  height: 0,
+});
 
   useEffect(() => {
   async function detect() {
@@ -46,9 +53,10 @@ export default function PreviewScreen() {
 
       console.log("Preview Detection:", result);
 
-      if (result.found) {
-        setDocumentCorners(result.corners);
-      }
+     if (result.found) {
+  console.log("SETTING CORNERS:", result.corners);
+  setDocumentCorners(result.corners);
+}
 
     } catch (error) {
       console.error("Detection failed:", error);
@@ -147,21 +155,74 @@ export default function PreviewScreen() {
       </View>
 
       {/* Image Preview */}
-      <View style={styles.previewContainer}>
-        {params.uri ? (
-          <Image
-            source={{ uri: params.uri }}
-            style={styles.previewImage}
-            resizeMode="contain"
-            accessible
-            accessibilityLabel="Captured document preview"
-          />
-        ) : (
-          <View style={styles.previewPlaceholder}>
-            <Text style={styles.placeholderText}>No image available</Text>
-          </View>
-        )}
-      </View>
+     <View style={styles.previewContainer}>
+  {params.uri ? (
+    <>
+  <Image
+  source={{ uri: params.uri }}
+  style={styles.previewImage}
+  resizeMode="contain"
+  onLayout={(event) => {
+  const { width, height, x, y } = event.nativeEvent.layout;
+
+  setImageLayout({
+    width,
+    height,
+    x,
+    y,
+  });
+}}
+/>
+
+      {documentCorners.length === 4 && (
+        <Svg
+          style={StyleSheet.absoluteFill}
+        >
+    <Polygon
+  points={documentCorners
+    .map(point => {
+     const imageWidth = Number(params.width);
+const imageHeight = Number(params.height);
+
+const containerWidth = imageLayout.width;
+const containerHeight = imageLayout.height;
+
+const scale = Math.min(
+  containerWidth / imageWidth,
+  containerHeight / imageHeight
+);
+
+const displayedWidth = imageWidth * scale;
+const displayedHeight = imageHeight * scale;
+
+const offsetX =
+  (containerWidth - displayedWidth) / 2;
+
+const offsetY =
+  (containerHeight - displayedHeight) / 2;
+
+   const x =
+  imageLayout.x + offsetX + point.x * scale;
+
+const y =
+  imageLayout.y + offsetY + point.y * scale;
+
+      return `${x},${y}`;
+    })
+    .join(' ')}
+  fill="rgba(0,255,0,0.3)"
+  stroke="lime"
+  strokeWidth="8"
+/>
+        </Svg>
+      )}
+    </>
+  ) : (
+    <View style={styles.previewPlaceholder}>
+      <Text style={styles.placeholderText}>No image available</Text>
+    </View>
+  )}
+</View>
 
       {/* Thumbnails of saved pages */}
       {pages.length > 0 && (
