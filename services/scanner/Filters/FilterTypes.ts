@@ -3,4 +3,5 @@ export type FilterType =
   | "Auto"
   | "Grayscale"
   | "BlackWhite"
-  | "Enhance";
+  | "Enhance"
+  | "MagicColor";

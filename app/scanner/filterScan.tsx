@@ -125,6 +125,7 @@ const FILTERS: FilterType[] = [
   "Grayscale",
   "BlackWhite",
   "Enhance",
+  "MagicColor",
 ];
 
 const FILTER_LABELS: Record<FilterType, string> = {
@@ -133,6 +134,7 @@ const FILTER_LABELS: Record<FilterType, string> = {
   Grayscale: "Grayscale",
   BlackWhite: "Black & White",
   Enhance: "Enhance",
+  MagicColor: "MagicColor"
 };
 
 const [selectedFilter, setSelectedFilter] = useState("Original");

@@ -26,6 +26,9 @@ export default class ImageProcessor {
       case "Enhance":
         return this.enhance(imageUri);
 
+      case "MagicColor":
+        return this.magicColor(imageUri);
+
       default:
         return imageUri;
     }
@@ -47,5 +50,9 @@ private static async blackWhite(uri: string): Promise<string> {
 
 private static async enhance(uri: string): Promise<string> {
   return NativeProcessor.enhance(uri);
+}
+
+private static async magicColor(uri: string): Promise<string> {
+  return NativeProcessor.magicColor(uri);
 }
 }

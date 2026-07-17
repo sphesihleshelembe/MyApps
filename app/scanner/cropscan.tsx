@@ -95,6 +95,7 @@ useEffect(() => {
         setImageUri(page.uri);
 
 const imageInfo = await ImageManipulator.manipulateAsync(
+
   page.uri,
   [],
   {}
@@ -106,6 +107,7 @@ setImageSize({
 });
 
 console.log("Image size:", imageInfo.width, imageInfo.height);
+
       }
     } finally {
       setLoading(false);

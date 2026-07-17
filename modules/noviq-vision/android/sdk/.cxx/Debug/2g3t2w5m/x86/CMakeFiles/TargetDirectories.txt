@@ -1,0 +1,3 @@
+C:/Users/sphes/source/repos/MyApps/modules/noviq-vision/android/sdk/.cxx/Debug/2g3t2w5m/x86/CMakeFiles/opencv_jni_shared.dir
+C:/Users/sphes/source/repos/MyApps/modules/noviq-vision/android/sdk/.cxx/Debug/2g3t2w5m/x86/CMakeFiles/edit_cache.dir
+C:/Users/sphes/source/repos/MyApps/modules/noviq-vision/android/sdk/.cxx/Debug/2g3t2w5m/x86/CMakeFiles/rebuild_cache.dir
