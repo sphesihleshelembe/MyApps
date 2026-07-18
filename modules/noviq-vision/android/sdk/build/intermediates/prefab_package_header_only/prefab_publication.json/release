@@ -1,5 +1,5 @@
 {
-  "installationFolder": "C:\\Users\\sphes\\source\\repos\\MyApps\\modules\\noviq-vision\\android\\sdk\\build\\intermediates\\prefab_package\\release\\prefab",
+  "installationFolder": "C:\\Users\\sphes\\Desktop\\Noviq\\modules\\noviq-vision\\android\\sdk\\build\\intermediates\\prefab_package\\release\\prefab",
   "gradlePath": ":opencv",
   "packageInfo": {
     "packageName": "opencv",
@@ -8,7 +8,7 @@
     "modules": [
       {
         "moduleName": "opencv_jni_shared",
-        "moduleHeaders": "C:\\Users\\sphes\\source\\repos\\MyApps\\modules\\noviq-vision\\android\\sdk\\native\\jni\\include",
+        "moduleHeaders": "C:\\Users\\sphes\\Desktop\\Noviq\\modules\\noviq-vision\\android\\sdk\\native\\jni\\include",
         "moduleExportLibraries": [],
         "abis": []
       }

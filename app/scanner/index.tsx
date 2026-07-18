@@ -28,6 +28,7 @@ import { CaptureButton } from '@/components/scanner/CaptureButton';
 import { PermissionView } from '@/components/scanner/PermissionView';
 import { ScanThumbnail } from '@/components/scanner/ScanThumbnail';
 import type { ScanPage } from '@/types';
+import * as FileSystem from "expo-file-system/legacy";
 
 export default function ScannerScreen() {
   const router = useRouter();
@@ -69,11 +70,20 @@ export default function ScannerScreen() {
         quality: 0.92,
         skipProcessing: false,
       });
+    const permanentUri =
+  `${FileSystem.documentDirectory}capture_${Date.now()}.jpg`;
+
+await FileSystem.copyAsync({
+  from: photo.uri,
+  to: permanentUri,
+});
+const check = await FileSystem.getInfoAsync(permanentUri);
+console.log("Copied image exists:", check.exists);
       if (photo) {
         router.push({
           pathname: '/scanner/preview',
           params: {
-            uri: photo.uri,
+          uri: permanentUri,
             width: String(photo.width),
             height: String(photo.height),
             sessionId: sessionRef.current.getId(),

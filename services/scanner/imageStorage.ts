@@ -27,16 +27,32 @@ export async function saveScanImage(uri: string): Promise<string> {
   const dest = `${SCAN_DIR}${filename}`;
 
   const sourceInfo = await FileSystem.getInfoAsync(uri);
+
+  console.log("SOURCE INFO:", sourceInfo);
+  console.log("Copying from:", uri);
+  console.log("Copying to:", dest);
+
   if (!sourceInfo.exists) {
-    throw new Error('Source image file does not exist.');
+    throw new Error("Source image file does not exist.");
   }
 
-  await FileSystem.copyAsync({ from: uri, to: dest });
+  try {
+    await FileSystem.copyAsync({
+      from: uri,
+      to: dest,
+    });
 
-  // Verify the copy succeeded
+    console.log("Copy succeeded");
+  } catch (e) {
+    console.log("COPY ERROR:", e);
+    throw e;
+  }
+
   const destInfo = await FileSystem.getInfoAsync(dest);
+  console.log("DEST INFO:", destInfo);
+
   if (!destInfo.exists) {
-    throw new Error('Failed to copy image to permanent storage.');
+    throw new Error("Failed to copy image to permanent storage.");
   }
 
   return dest;

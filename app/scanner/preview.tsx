@@ -96,6 +96,11 @@ export default function PreviewScreen() {
     setSaving(true);
     setSaveError(null);
     try {
+        const info = await FileSystem.getInfoAsync(params.uri);
+
+console.log("Use Photo URI:", params.uri);
+console.log("File exists:", info.exists);
+
       const permanentUri = await saveScanImage(params.uri);
       const session = await ScanSession.load(params.sessionId);
       if (!session) {
