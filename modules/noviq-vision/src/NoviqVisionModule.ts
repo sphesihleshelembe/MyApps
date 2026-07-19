@@ -1,13 +1,5 @@
 import { requireNativeModule } from "expo";
 
-type DocumentDetectionResult = {
-  found: boolean;
-  corners: {
-    x: number;
-    y: number;
-  }[];
-};
-
 type NoviqVisionModule = {
   grayscale(path: string): Promise<string>;
   blackWhite(path: string): Promise<string>;
@@ -15,6 +7,11 @@ type NoviqVisionModule = {
   magicColor(path: string): Promise<string>;
 
   detectDocument(path: string): Promise<DocumentDetectionResult>;
+
+  cropDocument(
+    path: string,
+    corners: { x: number; y: number }[]
+  ): Promise<string>;
 };
 
 export default requireNativeModule<NoviqVisionModule>("NoviqVision");

@@ -68,5 +68,20 @@ AsyncFunction("detectDocument") { imagePath: String ->
 
     DocumentDetector.detect(context, imagePath)
 }
+AsyncFunction("cropDocument") { imagePath: String, corners: List<Map<String, Double>> ->
+
+    if (!OpenCVLoader.initDebug()) {
+        throw Exception("OpenCV initialization failed")
+    }
+
+    val context = appContext.reactContext
+        ?: throw Exception("React context is not available.")
+
+    DocumentCropper.crop(
+        context,
+        imagePath,
+        corners
+    )
+}
   }
 }

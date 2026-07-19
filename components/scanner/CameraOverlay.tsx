@@ -9,55 +9,7 @@ const CORNER_LENGTH = 32;
 const CORNER_THICKNESS = 3;
 
 export function CameraOverlay() {
-  return (
-    <View style={styles.container} pointerEvents="none">
-      {/* Dark overlay outside the guide */}
-      <View style={styles.overlayTop} />
-      <View style={styles.overlayMiddle}>
-        <View style={styles.overlaySide} />
-        <View style={styles.guideFrame}>
-          {renderCorners()}
-        </View>
-        <View style={styles.overlaySide} />
-      </View>
-      <View style={styles.overlayBottom} />
-    </View>
-  );
-}
-
-function renderCorners() {
-  return (
-    <>
-      <View
-        style={[
-          styles.corner,
-          styles.cornerTopLeft,
-          { borderTopColor: '#FFFFFF', borderLeftColor: '#FFFFFF' },
-        ]}
-      />
-      <View
-        style={[
-          styles.corner,
-          styles.cornerTopRight,
-          { borderTopColor: '#FFFFFF', borderRightColor: '#FFFFFF' },
-        ]}
-      />
-      <View
-        style={[
-          styles.corner,
-          styles.cornerBottomLeft,
-          { borderBottomColor: '#FFFFFF', borderLeftColor: '#FFFFFF' },
-        ]}
-      />
-      <View
-        style={[
-          styles.corner,
-          styles.cornerBottomRight,
-          { borderBottomColor: '#FFFFFF', borderRightColor: '#FFFFFF' },
-        ]}
-      />
-    </>
-  );
+  return null;
 }
 
 const styles = StyleSheet.create({

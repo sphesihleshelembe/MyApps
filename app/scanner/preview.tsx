@@ -35,6 +35,7 @@ export default function PreviewScreen() {
     sessionId: string;
   }>();
 
+const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -44,27 +45,56 @@ export default function PreviewScreen() {
   height: 0,
 });
 
-  useEffect(() => {
+useEffect(() => {
   async function detect() {
     if (!params.uri) return;
 
     try {
       const result = await NoviqVision.detectDocument(params.uri);
 
-      console.log("Preview Detection:", result);
+      console.log("DETECT RESULT:", result);
 
-     if (result.found) {
-  console.log("SETTING CORNERS:", result.corners);
-  setDocumentCorners(result.corners);
-}
+      if (result.found) {
+        setDocumentCorners(result.corners);
+
+        console.log("CALLING CROPPER");
+
+        try {
+          const croppedUri = await NoviqVision.cropDocument(
+            params.uri,
+            result.corners
+          );
+
+          console.log("CROPPED URI:", croppedUri);
+
+          const cropInfo = await FileSystem.getInfoAsync(croppedUri);
+
+          if (cropInfo.exists) {
+            console.log("Using cropped image");
+            setPreviewUri(croppedUri);
+            setDocumentCorners([]);
+          } else {
+            console.log("Cropped file does not exist, using original");
+            setPreviewUri(params.uri);
+          }
+
+        } catch (cropError) {
+          console.log("Crop failed, using original image:", cropError);
+          setPreviewUri(params.uri);
+        }
+
+      } else {
+        console.log("NO DOCUMENT FOUND");
+        setPreviewUri(params.uri);
+      }
 
     } catch (error) {
       console.error("Detection failed:", error);
+      setPreviewUri(params.uri);
     }
   }
 
   detect();
-
 }, [params.uri]);
 
   useFocusEffect(
@@ -92,16 +122,16 @@ export default function PreviewScreen() {
   }, [params.uri, router]);
 
   const handleUsePhoto = useCallback(async () => {
-    if (saving || !params.sessionId || !params.uri) return;
+    if (saving || !params.sessionId || !previewUri) return;
     setSaving(true);
     setSaveError(null);
     try {
-        const info = await FileSystem.getInfoAsync(params.uri);
+ const info = await FileSystem.getInfoAsync(previewUri);
 
-console.log("Use Photo URI:", params.uri);
+console.log("Use Photo URI:", previewUri);
 console.log("File exists:", info.exists);
 
-      const permanentUri = await saveScanImage(params.uri);
+const permanentUri = await saveScanImage(previewUri);
       const session = await ScanSession.load(params.sessionId);
       if (!session) {
         throw new Error('Scan session not found.');
@@ -163,8 +193,8 @@ console.log("File exists:", info.exists);
      <View style={styles.previewContainer}>
   {params.uri ? (
     <>
-  <Image
-  source={{ uri: params.uri }}
+ <Image
+  source={{ uri: previewUri }}
   style={styles.previewImage}
   resizeMode="contain"
   onLayout={(event) => {

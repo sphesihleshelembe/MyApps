@@ -80,8 +80,13 @@ Imgproc.findContours(
 )
 
 var biggestArea = 0.0
+
+
+var bestScore = Double.NEGATIVE_INFINITY
 var biggestContour: MatOfPoint2f? = null
-var biggestDocumentArea = 0.0
+
+val imageCenterX = mat.cols() / 2.0
+val imageCenterY = mat.rows() / 2.0
 
 for (contour in contours) {
 
@@ -89,12 +94,13 @@ for (contour in contours) {
 
     val area = Imgproc.contourArea(contour2f)
 
+
     // Always remember the largest contour we've seen
     if (area > biggestArea) {
         biggestArea = area
     }
 
-    if (area < 1000) {
+ if (area < 50000) {
     continue
 }
 
@@ -108,13 +114,27 @@ for (contour in contours) {
     )
 
     // For now, don't compare the area again.
- if (
+if (
     approx.total() == 4L &&
-    area > biggestDocumentArea &&
     Imgproc.isContourConvex(MatOfPoint(*approx.toArray()))
 ) {
-    biggestDocumentArea = area
-    biggestContour = approx
+
+    val rect = Imgproc.boundingRect(MatOfPoint(*approx.toArray()))
+
+    val centerX = rect.x + rect.width / 2.0
+    val centerY = rect.y + rect.height / 2.0
+
+    val distance = Math.hypot(
+        centerX - imageCenterX,
+        centerY - imageCenterY
+    )
+
+    val score = area - (distance * 1000)
+
+    if (score > bestScore) {
+        bestScore = score
+        biggestContour = approx
+    }
 }
 }
 
