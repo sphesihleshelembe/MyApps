@@ -4,6 +4,9 @@
     "modules": ["NoviqVisionModule"]
   },
   "android": {
-    "modules": ["com.shelembestudios.noviq.vision.NoviqVisionModule"]
+    "modules": [
+      "com.shelembestudios.noviq.vision.NoviqVisionModule",
+      "com.shelembestudios.noviq.pdf.NoviqPdfModule"
+    ]
   }
 }

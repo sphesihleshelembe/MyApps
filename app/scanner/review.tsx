@@ -32,6 +32,7 @@ import { generatePdf, timestampName } from '@/services/pdf/PdfService';
 import { saveDocument } from '@/services/documents/DocumentStore';
 import type { ScanPage } from '@/types';
 import { SquarePen } from 'lucide-react-native';
+import { savePdf } from "@/services/export";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMN_COUNT = 2;
@@ -170,7 +171,42 @@ export default function ReviewScanScreen() {
         path: result.path,
         pageCount: result.pageCount,
         thumbnailUri: result.thumbnailUri,
+
       });
+
+         Alert.alert(
+  "Document Saved",
+  "Your scan has been saved to Noviq. Would you also like to save a copy to your device?",
+  [
+    {
+      text: "Not Now",
+      style: "cancel",
+    },
+    {
+      text: "Save Copy",
+      onPress: async () => {
+        const success = await savePdf(
+          result.path,
+          `${name}.pdf`
+        );
+
+        if (success) {
+          Alert.alert(
+            "Success",
+            "PDF saved to your selected folder."
+          );
+        } else {
+          Alert.alert(
+            "Cancelled",
+            "No PDF was exported."
+          );
+        }
+      },
+    },
+  ]
+);
+
+   
 
       setSaveProgress('Cleaning up…');
       try {
@@ -193,6 +229,7 @@ export default function ReviewScanScreen() {
     }
   }, [generating, pages.length, sessionId, docName, router]);
 
+ 
   const renderPageTile = useCallback(
     ({ item, index }: { item: ScanPage; index: number }) => {
       const isDeleting = deletingId === item.id;

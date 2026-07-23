@@ -170,6 +170,11 @@ useFocusEffect(
               return (
                 <TouchableOpacity
                   key={tool.id}
+                  onPress={() => {
+  if (tool.id === 'compress-pdf') {
+    router.push('/compress');
+  }
+}}
                   style={[
                     styles.popularToolCard,
                     {

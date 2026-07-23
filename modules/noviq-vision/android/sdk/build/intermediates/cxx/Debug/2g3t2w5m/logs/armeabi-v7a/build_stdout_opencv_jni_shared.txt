@@ -1,2 +1,0 @@
-ninja: Entering directory `C:\Users\sphes\source\repos\MyApps\modules\noviq-vision\android\sdk\.cxx\Debug\2g3t2w5m\armeabi-v7a'
-ninja: no work to do.

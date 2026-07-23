@@ -72,6 +72,9 @@ export default function DocumentsScreen() {
   const handleScanDocument = () => {
     router.push('/scanner');
   };
+  const handleOCR = () => {
+  router.push("/ocr");
+};
 
   const handleOpenDocument = useCallback(async (doc: StoredDocument) => {
     try {
@@ -329,7 +332,13 @@ export default function DocumentsScreen() {
                   Shadows.sm,
                 ]}
                 activeOpacity={0.75}
-                onPress={tool.id === 'scan-doc' ? handleScanDocument : undefined}
+               onPress={() => {
+  if (tool.id === "scan-doc") {
+    handleScanDocument();
+  } else if (tool.id === "ocr") {
+    handleOCR();
+  }
+}}
               >
                 <View
                   style={[
