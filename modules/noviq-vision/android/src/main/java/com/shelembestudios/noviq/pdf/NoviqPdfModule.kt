@@ -34,7 +34,9 @@ AsyncFunction("compress") { inputPath: String, mode: String ->
         "percentSaved" to result.percentSaved
     )
 }
-
+AsyncFunction("saveToDownloads") { path: String ->
+    PdfEngine.saveToDownloads(appContext.reactContext!!, path)
+}
     }
 
 }

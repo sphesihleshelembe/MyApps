@@ -51,6 +51,16 @@ const startTop = useSharedValue(0);
 const startWidth = useSharedValue(0);
 const startHeight = useSharedValue(0);
 
+const MIN_SIZE = 80;
+
+const clamp = (
+  value: number,
+  min: number,
+  max: number
+) => {
+  return Math.min(Math.max(value, min), max);
+};
+
 const topLeftGesture = Gesture.Pan()
   .onBegin(() => {
     startLeft.value = left.value;
@@ -59,35 +69,34 @@ const topLeftGesture = Gesture.Pan()
     startHeight.value = height.value;
   })
   .onUpdate((event) => {
-    const newWidth = startWidth.value - event.translationX;
-    const newHeight = startHeight.value - event.translationY;
 
-    if (newWidth > 80) {
-      left.value = startLeft.value + event.translationX;
+    const newLeft = startLeft.value + event.translationX;
+    const newTop = startTop.value + event.translationY;
+
+    const newWidth =
+      startWidth.value - event.translationX;
+
+    const newHeight =
+      startHeight.value - event.translationY;
+
+
+    if (
+      newLeft >= 0 &&
+      newWidth > 80
+    ) {
+      left.value = newLeft;
       width.value = newWidth;
     }
 
-    if (newHeight > 80) {
-      top.value = startTop.value + event.translationY;
+
+    if (
+      newTop >= 0 &&
+      newHeight > 80
+    ) {
+      top.value = newTop;
       height.value = newHeight;
     }
-  });
 
-  const topRightGesture = Gesture.Pan()
-  .onBegin(() => {
-    startTop.value = top.value;
-    startWidth.value = width.value;
-    startHeight.value = height.value;
-  })
-  .onUpdate((event) => {
-    if (startWidth.value + event.translationX > 80) {
-    width.value = startWidth.value + event.translationX;
-}
-
-   if (startHeight.value - event.translationY > 80) {
-   top.value = startTop.value + event.translationY;
-   height.value = startHeight.value - event.translationY;
-}
   });
 
 const bottomLeftGesture = Gesture.Pan()
@@ -98,30 +107,100 @@ const bottomLeftGesture = Gesture.Pan()
   })
   .onUpdate((event) => {
 
-    if (startWidth.value - event.translationX > 80) {
-    left.value = startLeft.value + event.translationX;
-    width.value = startWidth.value - event.translationX;
-}
+    const newLeft =
+      startLeft.value + event.translationX;
 
-   if (startHeight.value + event.translationY > 80) {
-   height.value = startHeight.value + event.translationY;
-}
+    const newWidth =
+      startWidth.value - event.translationX;
+
+
+    if (
+      newLeft >= 0 &&
+      newWidth > 80
+    ) {
+      left.value = newLeft;
+      width.value = newWidth;
+    }
+
+
+    const newHeight =
+      startHeight.value + event.translationY;
+
+
+    if (
+      top.value + newHeight <= imageHeight &&
+      newHeight > 80
+    ) {
+      height.value = newHeight;
+    }
 
   });
 
-const bottomRightGesture = Gesture.Pan()
+  const topRightGesture = Gesture.Pan()
+  .onBegin(() => {
+    startTop.value = top.value;
+    startWidth.value = width.value;
+    startHeight.value = height.value;
+  })
+  .onUpdate((event) => {
+
+    const newWidth =
+      startWidth.value + event.translationX;
+
+    const newTop =
+      startTop.value + event.translationY;
+
+    const newHeight =
+      startHeight.value - event.translationY;
+
+
+    if (
+      newWidth > 80 &&
+      left.value + newWidth <= imageWidth
+    ) {
+      width.value = newWidth;
+    }
+
+
+    if (
+      newTop >= 0 &&
+      newHeight > 80
+    ) {
+      top.value = newTop;
+      height.value = newHeight;
+    }
+
+  });
+
+  const bottomRightGesture = Gesture.Pan()
   .onBegin(() => {
     startWidth.value = width.value;
     startHeight.value = height.value;
   })
   .onUpdate((event) => {
-    if (startWidth.value + event.translationX > 80) {
-    width.value = startWidth.value + event.translationX;
-}
 
-   if (startHeight.value + event.translationY > 80) {
-   height.value = startHeight.value + event.translationY;
-}
+    const newWidth =
+      startWidth.value + event.translationX;
+
+    const newHeight =
+      startHeight.value + event.translationY;
+
+
+    if (
+      newWidth > 80 &&
+      left.value + newWidth <= imageWidth
+    ) {
+      width.value = newWidth;
+    }
+
+
+    if (
+      newHeight > 80 &&
+      top.value + newHeight <= imageHeight
+    ) {
+      height.value = newHeight;
+    }
+
   });
 
 const pan = Gesture.Pan()

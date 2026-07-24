@@ -5,8 +5,8 @@ enum class CompressionMode(
     val maxWidth: Int
 ) {
     LOW(
-        quality = 90,
-        maxWidth = 2200
+        quality = 85,
+        maxWidth = 1800
     ),
 
     BALANCED(
