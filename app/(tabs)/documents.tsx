@@ -76,6 +76,22 @@ export default function DocumentsScreen() {
   router.push("/ocr");
 };
 
+const handleMergePDF = () => {
+  router.push("/merge");
+};
+
+const handleCompressPDF = () => {
+  router.push("/compress");
+};
+
+const handleSplitPDF = () => {
+  router.push("/split");
+};
+
+const handlePdfToImage = () => {
+  router.push("/pdf-to-image");
+};
+
   const handleOpenDocument = useCallback(async (doc: StoredDocument) => {
     try {
       await Sharing.shareAsync(doc.path, {
@@ -320,6 +336,8 @@ export default function DocumentsScreen() {
             const IconComponent = (LucideIcons as any)[toPascalCase(tool.icon)];
             const bgColor = hexToRgba(toolColor, isDark ? 0.15 : 0.09);
 
+            console.log(tool.id, tool.label, tool.route);
+
             return (
               <TouchableOpacity
                 key={tool.id}
@@ -332,11 +350,29 @@ export default function DocumentsScreen() {
                   Shadows.sm,
                 ]}
                 activeOpacity={0.75}
-               onPress={() => {
-  if (tool.id === "scan-doc") {
-    handleScanDocument();
-  } else if (tool.id === "ocr") {
-    handleOCR();
+onPress={() => {
+  console.log("Pressed:", tool.id);
+
+  switch (tool.id) {
+    case "scan-doc":
+      handleScanDocument();
+      break;
+
+    case "ocr":
+      handleOCR();
+      break;
+
+    case "merge-pdf":
+      router.push("/merge");
+      break;
+
+    case "compress-pdf":
+      router.push("/compress");
+      break;
+
+    default:
+      console.log("No handler:", tool.id);
+      break;
   }
 }}
               >

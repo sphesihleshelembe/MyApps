@@ -22,13 +22,13 @@ export const QUICK_ACTIONS: QuickAction[] = [
     color: '#0891B2',
     route: '/qr',
   },
-  {
-    id: 'merge',
-    label: 'Merge PDF',
-    icon: 'layers',
-    color: '#059669',
-    route: '/documents',
-  },
+{
+  id: 'merge',
+  label: 'Merge PDF',
+  icon: 'layers',
+  color: '#059669',
+  route: '/merge',
+},
 ];
 
 export const POPULAR_TOOLS: Tool[] = [

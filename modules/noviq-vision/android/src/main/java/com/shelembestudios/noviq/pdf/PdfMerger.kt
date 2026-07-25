@@ -30,6 +30,6 @@ object PdfMerger {
 
         merger.mergeDocuments(null)
 
-        return outputFile.absolutePath
-    }
+return "file://${outputFile.absolutePath}"
+}
 }

@@ -34,8 +34,19 @@ AsyncFunction("compress") { inputPath: String, mode: String ->
         "percentSaved" to result.percentSaved
     )
 }
-AsyncFunction("saveToDownloads") { path: String ->
-    PdfEngine.saveToDownloads(appContext.reactContext!!, path)
+AsyncFunction("merge") { inputPaths: List<String> ->
+
+    val result = PdfEngine.merge(
+        context = appContext.reactContext
+            ?: throw Exception("Context unavailable"),
+        inputPaths = inputPaths
+    )
+
+    mapOf(
+        "success" to result.success,
+        "outputPath" to result.outputPath,
+        "error" to result.error
+    )
 }
     }
 
