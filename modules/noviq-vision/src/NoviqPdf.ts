@@ -16,6 +16,13 @@ export type MergeResult = {
   error?: string;
 };
 
+export type SplitResult = {
+  success: boolean;
+  files?: string[];
+  pageCount?: number;
+  error?: string;
+};
+
 type NoviqPdfModule = {
   compress(
     inputPath: string,
@@ -25,6 +32,10 @@ type NoviqPdfModule = {
   merge(
     inputPaths: string[]
   ): Promise<MergeResult>;
+
+  split(
+    inputPath: string
+  ): Promise<SplitResult>;
 };
 
 export default requireNativeModule<NoviqPdfModule>("NoviqPdf");

@@ -48,6 +48,22 @@ AsyncFunction("merge") { inputPaths: List<String> ->
         "error" to result.error
     )
 }
+AsyncFunction("split") { 
+    inputPath: String ->
+
+    val result = PdfEngine.split(
+        context = appContext.reactContext
+            ?: throw Exception("Context unavailable"),
+        inputPath = inputPath
+    )
+
+    mapOf(
+        "success" to result.success,
+        "files" to result.files,
+        "pageCount" to result.pageCount,
+        "error" to result.error
+    )
+}
     }
 
 }

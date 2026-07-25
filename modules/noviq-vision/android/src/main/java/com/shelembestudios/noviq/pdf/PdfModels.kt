@@ -23,10 +23,10 @@ enum class CompressionMode(
 data class PdfResult(
     val success: Boolean,
     val outputPath: String? = null,
+    val files: List<String>? = null,
     val originalSize: Long? = null,
     val outputSize: Long? = null,
     val pageCount: Int? = null,
     val percentSaved: Double? = null,
     val error: String? = null
-
 )

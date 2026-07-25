@@ -353,27 +353,35 @@ const handlePdfToImage = () => {
 onPress={() => {
   console.log("Pressed:", tool.id);
 
-  switch (tool.id) {
-    case "scan-doc":
-      handleScanDocument();
-      break;
+switch (tool.id) {
+  case "scan-doc":
+    handleScanDocument();
+    break;
 
-    case "ocr":
-      handleOCR();
-      break;
+  case "ocr":
+    handleOCR();
+    break;
 
-    case "merge-pdf":
-      router.push("/merge");
-      break;
+  case "merge-pdf":
+    handleMergePDF();
+    break;
 
-    case "compress-pdf":
-      router.push("/compress");
-      break;
+  case "compress-pdf":
+    handleCompressPDF();
+    break;
 
-    default:
-      console.log("No handler:", tool.id);
-      break;
-  }
+  case "split-pdf":
+    handleSplitPDF();
+    break;
+
+  case "pdf-to-image":
+    handlePdfToImage();
+    break;
+
+  default:
+    console.log("No handler:", tool.id);
+    break;
+}
 }}
               >
                 <View
