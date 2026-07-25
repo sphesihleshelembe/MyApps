@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  FlatList,
   Alert,
   StyleSheet,
   ActivityIndicator,
@@ -15,7 +14,8 @@ import { savePdf } from "@/services/export/savePdf";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 import { Typography, Spacing, BorderRadius, Shadows } from "@/theme";
-import { FileText, Plus, Layers, X } from "lucide-react-native";
+import { FileText, Plus, Layers, X, GripVertical } from "lucide-react-native";
+import DraggableFlatList from "react-native-draggable-flatlist";
 
 export default function MergeScreen() {
   const [pdfs, setPdfs] = useState<DocumentPicker.DocumentPickerAsset[]>([]);
@@ -45,6 +45,24 @@ setPdfs((current) => {
   return [...current, ...newPdfs];
 });  }
 };
+
+const getPdfOrder = (uri: string) =>
+  pdfs.findIndex((pdf) => pdf.uri === uri) + 1;
+
+const removePdf = (uri: string) => {
+  setPdfs((current) =>
+    current.filter((pdf) => pdf.uri !== uri)
+  );
+};
+const primaryButtonStyle = (
+  disabled: boolean
+) => [
+  styles.button,
+  {
+    backgroundColor: colors.primary,
+    opacity: disabled ? 0.5 : 1,
+  },
+];
 
 const mergePDFs = async () => {
   setMerging(true);
@@ -118,13 +136,8 @@ return (
 
 
 <TouchableOpacity
-  style={[
-  styles.button,
-  {
-    backgroundColor: colors.primary,
-    opacity: merging ? 0.6 : 1,
-  },
-]}
+style={primaryButtonStyle(merging)}
+
   disabled={merging}
   onPress={pickPDFs}
 >
@@ -180,17 +193,18 @@ return (
     </Text>
   </View>
 ) : (
-  <FlatList
-    data={pdfs}
-    keyExtractor={(item) => item.uri}
-    renderItem={({ item, index }) => (
-      <View
-        style={[
-          styles.pdfCard,
-          {
-            backgroundColor: colors.card,
-            borderColor: colors.border,
-          },
+<DraggableFlatList
+  data={pdfs}
+  keyExtractor={(item) => item.uri}
+  onDragEnd={({ data }) => setPdfs(data)}
+  renderItem={({ item, index, drag, isActive }) => (
+<View
+  style={[
+    styles.pdfCard,
+    {
+      opacity: isActive ? 0.8 : 1,
+      transform: [{ scale: isActive ? 1.02 : 1 }],
+    },
           Shadows.sm,
         ]}
       >
@@ -202,10 +216,23 @@ return (
             },
           ]}
         >
-          <FileText
-            size={22}
-            color={colors.primary}
-          />
+          <>
+  <Text
+    style={[
+      styles.orderNumber,
+      {
+        color: colors.primary,
+      },
+    ]}
+  >
+{getPdfOrder(item.uri)}
+</Text>
+
+  <FileText
+    size={18}
+    color={colors.primary}
+  />
+</>
         </View>
 
         <View style={{ flex: 1 }}>
@@ -230,18 +257,31 @@ return (
         </View>
         
 
-        <TouchableOpacity
-          onPress={() =>
-            setPdfs(current =>
-              current.filter((_, i) => i !== index)
-            )
-          }
-        >
-          <X
-            size={20}
-            color={colors.error}
-          />
-        </TouchableOpacity>
+<View
+  style={styles.actions}
+>
+
+  <TouchableOpacity
+    onLongPress={drag}
+    delayLongPress={150}
+    style={styles.dragHandle}
+  >
+    <GripVertical
+      size={20}
+      color={colors.textSecondary}
+    />
+  </TouchableOpacity>
+
+<TouchableOpacity
+ onPress={() => removePdf(item.uri)}
+>
+  <X
+    size={20}
+    color={colors.error}
+  />
+</TouchableOpacity>
+
+</View>
       </View>
     )}
   />
@@ -249,16 +289,14 @@ return (
    </View>
 
     <TouchableOpacity
-  style={[
-  styles.button,
+ style={[
+  ...primaryButtonStyle(
+    pdfs.length < 2 || merging
+  ),
   Shadows.md,
-  {
-    backgroundColor: colors.primary,
-opacity:
-  pdfs.length < 2 || merging
-    ? 0.5
-    : 1,  },
+
 ]}
+
 disabled={pdfs.length < 2 || merging}
 onPress={() => {
     console.log("Merge button pressed");
@@ -382,5 +420,19 @@ emptySubtitle: {
 },
 listContainer: {
   flex: 1,
+},
+actions: {
+  flexDirection: "row",
+  alignItems: "center",
+},
+
+dragHandle: {
+  paddingHorizontal: 8,
+  marginRight: 4,
+},
+orderNumber: {
+  fontWeight: "700",
+  fontSize: 14,
+  marginBottom: 2,
 },
 });
