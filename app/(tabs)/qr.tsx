@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,9 +21,15 @@ import {
   Phone,
   Wifi,
   ChevronRight,
-  Clipboard,
   Zap,
+  Eye,
+EyeOff,
 } from 'lucide-react-native';
+import QRCode from "react-native-qrcode-svg";
+import {
+  Clipboard as ClipboardIcon,
+} from "lucide-react-native";
+import * as Clipboard from "expo-clipboard";
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius, Shadows } from '@/theme';
 import { Card, SectionHeader } from '@/components';
@@ -39,10 +45,17 @@ import Animated, {
   useAnimatedStyle,
   withRepeat,
   withTiming,
+  withSpring,
 } from "react-native-reanimated";
 
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Sharing from "expo-sharing";
+import ViewShot, { captureRef } from "react-native-view-shot";
+import { saveQr } from "@/services/export/saveQr";
+import * as FileSystem from "expo-file-system/legacy";
+import { Alert } from "react-native";
+
 
 type QrTab = 'scanner' | 'generator';
 
@@ -79,6 +92,29 @@ const QR_HISTORY_PLACEHOLDER = [
   },
 ];
 
+const QR_COLORS = [
+  {
+    id: "black",
+    color: "#000000",
+    label: "Classic",
+  },
+  {
+    id: "blue",
+    color: "#2563EB",
+    label: "Noviq Blue",
+  },
+  {
+    id: "purple",
+    color: "#7C3AED",
+    label: "Purple",
+  },
+  {
+    id: "green",
+    color: "#059669",
+    label: "Green",
+  },
+];
+
 type HistoryItem = {
   id: string;
   type: "website" | "email" | "phone" | "wifi" | "text";
@@ -107,11 +143,21 @@ const [flashOn, setFlashOn] = useState(false);
 
 const [scanned, setScanned] = useState(false);
 const [history, setHistory] = useState<HistoryItem[]>([]);
+const qrRef = useRef<any>(null);
+const qrViewRef = useRef<ViewShot>(null);
+
+const [wifiName, setWifiName] = useState("");
+const [wifiPassword, setWifiPassword] = useState("");
+const [wifiSecurity, setWifiSecurity] = useState<"WPA" | "nopass">("WPA");
+const [showWifiPassword, setShowWifiPassword] = useState(false);
 
 const [scanResult, setScanResult] = useState<string | null>(null);
 const [scanType, setScanType] = useState<
   "website" | "email" | "phone" | "wifi" | "text"
 >("text");
+const qrScale = useSharedValue(0.8);
+const qrOpacity = useSharedValue(0);
+const [qrColor, setQrColor] = useState("#000000");
 
 const clearHistory = async () => {
   await AsyncStorage.removeItem("qr_history");
@@ -154,6 +200,33 @@ useEffect(() => {
   loadHistory();
 }, []);
 
+useEffect(() => {
+  if (isQrValid()) {
+    qrScale.value = withSpring(1);
+    qrOpacity.value = withSpring(1);
+  } else {
+    qrScale.value = 0.8;
+    qrOpacity.value = 0;
+  }
+}, [
+  inputValue,
+  wifiName,
+  wifiPassword,
+  wifiSecurity,
+  selectedGenType,
+]);
+
+const qrAnimatedStyle = useAnimatedStyle(() => ({
+  transform: [
+    {
+      scale: qrScale.value,
+    },
+  ],
+  opacity: qrOpacity.value,
+}));
+
+
+
 const getQrType = (value: string) => {
   const text = value.trim();
 
@@ -182,6 +255,28 @@ const getQrType = (value: string) => {
   }
 
   return "text";
+};
+
+const pasteFromClipboard = async () => {
+  console.log("Paste button pressed");
+
+  const text = await Clipboard.getStringAsync();
+  console.log("Clipboard:", text);
+
+  if (!text.trim()) return;
+
+  const type = getQrType(text);
+
+  setScanResult(text);
+  setScanType(type);
+  setScanned(true);
+  setCameraOpen(false);
+
+  await saveHistory(type, text);
+
+  await Haptics.notificationAsync(
+    Haptics.NotificationFeedbackType.Success
+  );
 };
 
 const saveHistory = async (
@@ -235,6 +330,109 @@ await saveHistory(type, result.data);
   );
 };
 
+const getQrValue = () => {
+  switch (selectedGenType) {
+    case "url":
+      return inputValue;
+
+    case "email":
+      return inputValue.startsWith("mailto:")
+        ? inputValue
+        : `mailto:${inputValue}`;
+
+    case "phone":
+      return inputValue.startsWith("tel:")
+        ? inputValue
+        : `tel:${inputValue}`;
+
+    case "wifi":
+      if (!wifiName.trim()) return "";
+
+      if (wifiSecurity === "nopass") {
+        return `WIFI:T:nopass;S:${wifiName};;`;
+      }
+
+      return `WIFI:T:WPA;S:${wifiName};P:${wifiPassword};;`;
+
+    default:
+      return inputValue;
+  }
+};
+
+const isQrValid = () => {
+  switch (selectedGenType) {
+    case "url":
+      return /^https?:\/\/.+/i.test(inputValue.trim());
+
+    case "email":
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        inputValue.trim()
+      );
+
+    case "phone":
+      return /^[+]?[0-9\s()-]{7,}$/.test(
+        inputValue.trim()
+      );
+
+    case "wifi":
+      if (!wifiName.trim()) return false;
+
+      if (wifiSecurity === "WPA" && !wifiPassword.trim()) {
+        return false;
+      }
+
+      return true;
+
+    default:
+      return inputValue.trim().length > 0;
+  }
+};
+
+const shareQr = async () => {
+  try {
+    if (!qrViewRef.current) return;
+
+    const uri = await captureRef(qrViewRef, {
+      format: "png",
+      quality: 1,
+    });
+
+    await Sharing.shareAsync(uri);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const saveQrImage = async () => {
+  try {
+    if (!qrViewRef.current) return;
+
+    const imageUri = await captureRef(qrViewRef, {
+      format: "png",
+      quality: 1,
+    });
+
+    const permissions =
+      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+
+    if (!permissions.granted) return;
+
+    const success = await saveQr(
+      permissions.directoryUri,
+      imageUri,
+      `QR_${Date.now()}.png`
+    );
+
+    if (success) {
+      Alert.alert("Success", "QR code saved successfully.");
+    } else {
+      Alert.alert("Error", "Failed to save QR code.");
+    }
+  } catch (error) {
+    console.log(error);
+    Alert.alert("Error", "Something went wrong.");
+  }
+};
 
   return (
     <SafeAreaView
@@ -290,6 +488,7 @@ await saveHistory(type, result.data);
                 Scanner
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[
                 styles.tabButton,
@@ -351,6 +550,28 @@ await saveHistory(type, result.data);
   }}
   onBarcodeScanned={handleBarcodeScanned}
 />
+
+<TouchableOpacity
+  style={[
+    styles.cancelButton,
+    {
+      backgroundColor: "rgba(0,0,0,0.6)",
+    },
+  ]}
+  onPress={() => {
+    setCameraOpen(false);
+    setScanned(false);
+  }}
+>
+  <Text
+    style={{
+      color: "#fff",
+      fontWeight: "600",
+    }}
+  >
+    Cancel
+  </Text>
+</TouchableOpacity>
 
 <Animated.View
   style={[
@@ -609,15 +830,19 @@ await saveHistory(type, result.data);
   }}
 >
   <TouchableOpacity
-    style={[
-      styles.actionButton,
-      {
-        flex: 1,
-        backgroundColor: colors.card,
-        borderWidth: 1,
-        borderColor: colors.border,
-      },
-    ]}
+    sdisabled={!scanResult}
+style={[
+  styles.actionButton,
+  {
+    flex: 1,
+    backgroundColor: scanResult
+      ? colors.card
+      : colors.border,
+    borderWidth: 1,
+    borderColor: colors.border,
+    opacity: scanResult ? 1 : 0.5,
+  },
+]}
    onPress={async () => {
   await Clipboard.setStringAsync(scanResult!);
 }}
@@ -628,15 +853,19 @@ await saveHistory(type, result.data);
   </TouchableOpacity>
 
   <TouchableOpacity
-    style={[
-      styles.actionButton,
-      {
-        flex: 1,
-        backgroundColor: colors.card,
-        borderWidth: 1,
-        borderColor: colors.border,
-      },
-    ]}
+    disabled={!scanResult}
+style={[
+  styles.actionButton,
+  {
+    flex: 1,
+    backgroundColor: scanResult
+      ? colors.card
+      : colors.border,
+    borderWidth: 1,
+    borderColor: colors.border,
+    opacity: scanResult ? 1 : 0.5,
+  },
+]}
     onPress={() =>
       Share.share({
         message: scanResult!,
@@ -692,9 +921,10 @@ await saveHistory(type, result.data);
                   borderColor: colors.border,
                 },
               ]}
+              onPress={pasteFromClipboard}
               activeOpacity={0.75}
             >
-              <Clipboard size={18} color={colors.primary} strokeWidth={2} />
+              <ClipboardIcon size={18} color={colors.primary} strokeWidth={2} />
               <Text style={[styles.pasteLabel, { color: colors.primary }]}>
                 Paste from Clipboard
               </Text>
@@ -766,107 +996,345 @@ await saveHistory(type, result.data);
             </View>
 
             {/* Input */}
-            <View style={styles.genSection}>
-              <Text style={[styles.genSectionLabel, { color: colors.text }]}>
-                Enter Content
-              </Text>
-              <View
-                style={[
-                  styles.inputContainer,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <TextInput
-                  style={[styles.textInput, { color: colors.text }]}
-                  placeholder={
-                    selectedGenType === 'url'
-                      ? 'https://example.com'
-                      : selectedGenType === 'email'
-                      ? 'name@example.com'
-                      : selectedGenType === 'phone'
-                      ? '+1 (555) 000-0000'
-                      : 'Network name...'
-                  }
-                  placeholderTextColor={colors.textDisabled}
-                  value={inputValue}
-                  onChangeText={setInputValue}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-            </View>
+ {selectedGenType === "wifi" ? (
+  <>
+    <View
+      style={[
+        styles.inputContainer,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          marginBottom: 12,
+        },
+      ]}
+    >
+      <TextInput
+        placeholder="Network Name (SSID)"
+        placeholderTextColor={colors.textDisabled}
+        value={wifiName}
+        onChangeText={setWifiName}
+        style={[styles.textInput, { color: colors.text }]}
+      />
+
+    </View>
+
+{wifiSecurity === "WPA" && (
+  <View
+    style={[
+      styles.inputContainer,
+      {
+        backgroundColor: colors.card,
+        borderColor: colors.border,
+        marginBottom: 12,
+        flexDirection: "row",
+        alignItems: "center",
+      },
+    ]}
+  >
+    <TextInput
+      placeholder="Password"
+      placeholderTextColor={colors.textDisabled}
+      value={wifiPassword}
+      onChangeText={setWifiPassword}
+      secureTextEntry={!showWifiPassword}
+      style={[
+        styles.textInput,
+        {
+          color: colors.text,
+          flex: 1,
+        },
+      ]}
+    />
+
+    <TouchableOpacity
+      onPress={() =>
+        setShowWifiPassword(!showWifiPassword)
+      }
+    >
+      {showWifiPassword ? (
+        <EyeOff
+          size={20}
+          color={colors.textSecondary}
+        />
+      ) : (
+        <Eye
+          size={20}
+          color={colors.textSecondary}
+        />
+      )}
+    </TouchableOpacity>
+  </View>
+)}
+
+    <View
+  style={{
+    flexDirection: "row",
+    gap: 12,
+  }}
+>
+  <TouchableOpacity
+    style={[
+      styles.actionButton,
+      {
+        flex: 1,
+        backgroundColor:
+          wifiSecurity === "WPA"
+            ? colors.primary
+            : colors.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+      },
+    ]}
+    onPress={() => setWifiSecurity("WPA")}
+  >
+    <Text
+      style={{
+        color:
+          wifiSecurity === "WPA"
+            ? "#fff"
+            : colors.text,
+        fontWeight: "600",
+      }}
+    >
+      WPA/WPA2
+    </Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={[
+      styles.actionButton,
+      {
+        flex: 1,
+        backgroundColor:
+          wifiSecurity === "nopass"
+            ? colors.primary
+            : colors.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+      },
+    ]}
+onPress={() => {
+  setWifiSecurity("nopass");
+  setWifiPassword("");
+}}  >
+    <Text
+      style={{
+        color:
+          wifiSecurity === "nopass"
+            ? "#fff"
+            : colors.text,
+        fontWeight: "600",
+      }}
+    >
+      Open
+    </Text>
+  </TouchableOpacity>
+</View>
+
+  </>
+) : (
+  <View
+    style={[
+      styles.inputContainer,
+      {
+        backgroundColor: colors.card,
+        borderColor: colors.border,
+      },
+    ]}
+  >
+    <TextInput
+      style={[styles.textInput, { color: colors.text }]}
+      placeholder={
+        selectedGenType === "url"
+          ? "https://example.com"
+          : selectedGenType === "email"
+          ? "name@example.com"
+          : "+1 (555) 000-0000"
+      }
+      placeholderTextColor={colors.textDisabled}
+      value={inputValue}
+      onChangeText={setInputValue}
+      autoCapitalize="none"
+      autoCorrect={false}
+    />
+  </View>
+)}
 
             {/* QR Preview placeholder */}
-            <View style={styles.genSection}>
-              <Text style={[styles.genSectionLabel, { color: colors.text }]}>
-                Preview
-              </Text>
-              <Card
-                style={[styles.qrPreviewCard, { borderColor: colors.border, borderWidth: 1 }]}
-                shadow="none"
-              >
-                <View
-                  style={[
-                    styles.qrPreviewArea,
-                    { backgroundColor: isDark ? '#1E293B' : '#F8FAFC' },
-                  ]}
-                >
-                  <QrCode
-                    size={80}
-                    color={
-                      inputValue.length > 0
-                        ? colors.text
-                        : colors.textDisabled
-                    }
-                    strokeWidth={1}
-                  />
-                  {inputValue.length === 0 && (
-                    <Text
-                      style={[
-                        styles.qrPreviewHint,
-                        { color: colors.textDisabled },
-                      ]}
-                    >
-                      Enter content above to generate QR
-                    </Text>
-                  )}
-                </View>
-              </Card>
-            </View>
+ <View
+  style={[
+    styles.qrPreviewArea,
+    {
+      backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
+    },
+  ]}
+>
+ {isQrValid() ? (
+<Animated.View style={qrAnimatedStyle}>
+<ViewShot
+  ref={qrViewRef}
+  options={{
+    format: "png",
+    quality: 1,
+  }}
+>
+<View
+  style={{
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 16,
+    overflow: "hidden",
+    position: "relative",
+    zIndex: 1,
+  }}
+>
+<View
+  style={{
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 20,
+    alignItems: "center",
+  }}
+>
+  <QRCode
+    value={getQrValue()}
+    size={160}
+    backgroundColor="white"
+    color={qrColor}
+    ecl="H"
+  />
 
-            <TouchableOpacity
-              style={[
-                styles.generateButton,
-                {
-                  backgroundColor:
-                    inputValue.length > 0 ? colors.primary : colors.border,
-                },
-              ]}
-              disabled={inputValue.length === 0}
-              activeOpacity={0.85}
-            >
-              <Zap
-                size={18}
-                color={inputValue.length > 0 ? '#FFFFFF' : colors.textDisabled}
-                strokeWidth={2}
-              />
-              <Text
-                style={[
-                  styles.generateLabel,
-                  {
-                    color:
-                      inputValue.length > 0 ? '#FFFFFF' : colors.textDisabled,
-                  },
-                ]}
-              >
-                Generate QR Code
-              </Text>
-            </TouchableOpacity>
+
+  <Text
+    style={{
+      marginTop: 8,
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1.5,
+      color: "#CBD5E1",
+    }}
+  >
+    SHELEMBESTUDIOS
+  </Text>
+</View>
+
+  </View>
+</ViewShot>
+</Animated.View>
+  ) : (
+    <>
+      <QrCode
+        size={80}
+        color={colors.textDisabled}
+        strokeWidth={1}
+      />
+
+      <Text
+        style={[
+          styles.qrPreviewHint,
+          {
+            color: colors.textDisabled,
+          },
+        ]}
+      >
+        {selectedGenType === "wifi"
+  ? "Enter network details to generate QR"
+  : "Enter valid content to generate QR"}
+
+      </Text>
+    </>
+  )}
+</View>
+
+    
           </View>
         )}
+
+        <View style={{ marginTop: 20 }}>
+  <Text
+    style={{
+      color: colors.text,
+      fontWeight: "600",
+      marginBottom: 10,
+    }}
+  >
+    QR Style
+  </Text>
+
+  <View
+    style={{
+      flexDirection: "row",
+      gap: 12,
+    }}
+  >
+    {QR_COLORS.map((item) => (
+      <TouchableOpacity
+        key={item.id}
+        onPress={() => setQrColor(item.color)}
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 21,
+          backgroundColor: item.color,
+          borderWidth: qrColor === item.color ? 3 : 0,
+          borderColor: colors.primary,
+        }}
+      />
+    ))}
+  </View>
+</View>
+
+ <View
+  style={{
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 20,
+  }}
+>
+  <TouchableOpacity
+    style={[
+      styles.actionButton,
+      {
+        flex: 1,
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+      },
+    ]}
+disabled={!isQrValid()}
+onPress={saveQrImage}
+  >
+    <Text
+      style={{
+        color: colors.text,
+        fontWeight: "600",
+      }}
+    >
+      💾 Save QR
+    </Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={[
+      styles.actionButton,
+      {
+        flex: 1,
+        backgroundColor: colors.primary,
+      },
+    ]}
+   disabled={!isQrValid()}
+    onPress={shareQr}
+  >
+    <Text
+      style={{
+        color: "#fff",
+        fontWeight: "600",
+      }}
+    >
+      📤 Share QR
+    </Text>
+  </TouchableOpacity>
+</View>
 
         {/* History */}
         <View style={styles.historySection}>
@@ -925,7 +1393,7 @@ await saveHistory(type, result.data);
   )}
 
   {item.type === "text" && (
-    <Clipboard size={20} color={colors.primary} strokeWidth={2} />
+    <ClipboardIcon size={20} color={colors.primary} strokeWidth={2} />
   )}
 </View>
 
@@ -1152,25 +1620,17 @@ const styles = StyleSheet.create({
   qrPreviewCard: {
     overflow: 'hidden',
   },
-  qrPreviewArea: {
-    height: 180,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.md,
-    borderRadius: BorderRadius.lg,
-  },
+qrPreviewArea: {
+  minHeight: 260,
+  alignItems: "center",
+  justifyContent: "center",
+  gap: Spacing.md,
+  borderRadius: BorderRadius.lg,
+  overflow: "hidden",
+},
   qrPreviewHint: {
     ...Typography.caption,
     textAlign: 'center',
-  },
-  generateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.base,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
   },
   generateLabel: {
     ...Typography.button,
@@ -1233,5 +1693,14 @@ scanLine: {
   right: 30,
   height: 3,
   borderRadius: 10,
+},
+cancelButton: {
+  position: "absolute",
+  left: 16,
+  top: 16,
+  paddingHorizontal: 16,
+  height: 44,
+  borderRadius: 22,
+  justifyContent: "center",
 },
 });

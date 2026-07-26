@@ -56,30 +56,6 @@ object PdfEngine {
 
         }
     }
-
-
-    fun render(
-        context: Context,
-        inputPath: String
-    ): PdfResult {
-
-        return try {
-
-            PdfConverter.render(
-    context,
-    inputPath
-)
-
-        } catch (e: Exception) {
-
-            PdfResult(
-                success = false,
-                error = e.message
-            )
-
-        }
-
-    }
 fun split(
     context: Context,
     inputPath: String
