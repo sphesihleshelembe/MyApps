@@ -36,6 +36,7 @@ type NoviqPdfModule = {
   split(
     inputPath: string
   ): Promise<SplitResult>;
+
 };
 
 export default requireNativeModule<NoviqPdfModule>("NoviqPdf");

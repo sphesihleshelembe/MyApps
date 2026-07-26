@@ -8,13 +8,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     color: '#2563EB',
     route: '/documents',
   },
-  {
-    id: 'import',
-    label: 'PDF to Img',
-    icon: 'image',
-    color: '#7C3AED',
-    route: '/documents',
-  },
+
   {
     id: 'qr',
     label: 'QR Code',
@@ -108,14 +102,8 @@ export const DOCUMENT_TOOLS: Tool[] = [
     icon: 'scissors',
     category: 'pdf',
   },
-  {
-    id: 'pdf-to-img',
-    label: 'PDF to Image',
-    description: 'Export PDF pages as images',
-    icon: 'file-image',
-    category: 'convert',
-  },
- 
+
+
 
 ];
 

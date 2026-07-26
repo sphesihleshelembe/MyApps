@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-} from 'react-native';
+  Linking,
+  Share,
+} from "react-native";
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ScanLine,
@@ -24,6 +27,22 @@ import {
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius, Shadows } from '@/theme';
 import { Card, SectionHeader } from '@/components';
+import {
+  CameraView,
+  useCameraPermissions,
+  type BarcodeScanningResult,
+} from "expo-camera";
+import Animated, {
+  FadeInDown,
+  FadeOutDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
+
+import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type QrTab = 'scanner' | 'generator';
 
@@ -33,6 +52,8 @@ const QR_GENERATOR_TYPES = [
   { id: 'phone', label: 'Phone', icon: Phone, color: '#059669' },
   { id: 'wifi', label: 'Wi-Fi', icon: Wifi, color: '#0891B2' },
 ];
+
+
 
 const QR_HISTORY_PLACEHOLDER = [
   {
@@ -58,6 +79,13 @@ const QR_HISTORY_PLACEHOLDER = [
   },
 ];
 
+type HistoryItem = {
+  id: string;
+  type: "website" | "email" | "phone" | "wifi" | "text";
+  content: string;
+  createdAt: string;
+};
+
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -65,11 +93,148 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+
 export default function QRScreen() {
   const { colors, isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<QrTab>('scanner');
   const [selectedGenType, setSelectedGenType] = useState('url');
   const [inputValue, setInputValue] = useState('');
+  const scanLinePosition = useSharedValue(0);
+  const [permission, requestPermission] = useCameraPermissions();
+
+const [cameraOpen, setCameraOpen] = useState(false);
+const [flashOn, setFlashOn] = useState(false);
+
+const [scanned, setScanned] = useState(false);
+const [history, setHistory] = useState<HistoryItem[]>([]);
+
+const [scanResult, setScanResult] = useState<string | null>(null);
+const [scanType, setScanType] = useState<
+  "website" | "email" | "phone" | "wifi" | "text"
+>("text");
+
+const clearHistory = async () => {
+  await AsyncStorage.removeItem("qr_history");
+  setHistory([]);
+};
+
+useEffect(() => {
+  if (cameraOpen) {
+    scanLinePosition.value = withRepeat(
+      withTiming(190, { duration: 1800 }),
+      -1,
+      true
+    );
+  } else {
+    scanLinePosition.value = 0;
+  }
+}, [cameraOpen]);
+
+const scanLineStyle = useAnimatedStyle(() => ({
+  transform: [
+    {
+      translateY: scanLinePosition.value,
+    },
+  ],
+}));
+
+useEffect(() => {
+  const loadHistory = async () => {
+    try {
+      const stored = await AsyncStorage.getItem("qr_history");
+
+      if (stored) {
+        setHistory(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.log("Failed to load history", error);
+    }
+  };
+
+  loadHistory();
+}, []);
+
+const getQrType = (value: string) => {
+  const text = value.trim();
+
+  if (/^https?:\/\//i.test(text)) {
+    return "website";
+  }
+
+  if (text.startsWith("mailto:")) {
+    return "email";
+  }
+
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
+    return "email";
+  }
+
+  if (text.startsWith("tel:")) {
+    return "phone";
+  }
+
+  if (/^\+?[0-9\s()-]{7,}$/.test(text)) {
+    return "phone";
+  }
+
+  if (text.startsWith("WIFI:")) {
+    return "wifi";
+  }
+
+  return "text";
+};
+
+const saveHistory = async (
+  type: "website" | "email" | "phone" | "wifi" | "text",
+  content: string
+) => {
+  try {
+    const item: HistoryItem = {
+      id: Date.now().toString(),
+      type,
+      content,
+      createdAt: new Date().toLocaleString(),
+    };
+
+    const existing = await AsyncStorage.getItem("qr_history");
+
+    const history: HistoryItem[] = existing
+      ? JSON.parse(existing)
+      : [];
+
+    const updated = [item, ...history];
+
+    await AsyncStorage.setItem(
+      "qr_history",
+      JSON.stringify(updated)
+    );
+
+    setHistory(updated);
+  } catch (error) {
+    console.log("Failed to save history", error);
+  }
+};
+
+
+const handleBarcodeScanned = async (
+  result: BarcodeScanningResult
+) => {
+  if (scanned) return;
+
+const type = getQrType(result.data);
+
+setScanned(true);
+setCameraOpen(false);
+setScanResult(result.data);
+setScanType(type);
+
+await saveHistory(type, result.data);
+
+  await Haptics.notificationAsync(
+    Haptics.NotificationFeedbackType.Success
+  );
+};
+
 
   return (
     <SafeAreaView
@@ -164,51 +329,325 @@ export default function QRScreen() {
         {activeTab === 'scanner' && (
           <View style={styles.tabContent}>
             {/* Viewfinder placeholder */}
-            <Card
-              style={[styles.viewfinderCard, { borderColor: colors.border, borderWidth: 1 }]}
-              shadow="none"
-              padding={0}
-            >
-              <View
-                style={[
-                  styles.viewfinderArea,
-                  { backgroundColor: isDark ? '#0F172A' : '#F1F5F9' },
-                ]}
-              >
-                {/* Corner markers */}
-                {['tl', 'tr', 'bl', 'br'].map((pos) => (
-                  <View
-                    key={pos}
-                    style={[
-                      styles.cornerMarker,
-                      styles[`corner_${pos}` as keyof typeof styles] as any,
-                      { borderColor: colors.primary },
-                    ]}
-                  />
-                ))}
-                <Camera
-                  size={40}
-                  color={colors.textDisabled}
-                  strokeWidth={1.5}
-                />
-                <Text
-                  style={[
-                    styles.viewfinderLabel,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Camera preview
-                </Text>
-                <Text
-                  style={[
-                    styles.viewfinderHint,
-                    { color: colors.textDisabled },
-                  ]}
-                >
-                  Tap to open camera
-                </Text>
-              </View>
-            </Card>
+<Card
+  style={[
+    styles.viewfinderCard,
+    {
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+  ]}
+  shadow="none"
+  padding={0}
+>
+{cameraOpen ? (
+  <>
+<CameraView
+  style={styles.viewfinderArea}
+  facing="back"
+  enableTorch={flashOn}
+  barcodeScannerSettings={{
+    barcodeTypes: ["qr"],
+  }}
+  onBarcodeScanned={handleBarcodeScanned}
+/>
+
+<Animated.View
+  style={[
+    styles.scanLine,
+    scanLineStyle,
+    {
+      backgroundColor: colors.primary,
+    },
+  ]}
+/>
+
+    <TouchableOpacity
+      style={[
+        styles.flashButton,
+        {
+          backgroundColor: flashOn
+            ? colors.primary
+            : "rgba(0,0,0,0.45)",
+        },
+      ]}
+      onPress={() => setFlashOn(!flashOn)}
+    >
+      <Zap
+        size={22}
+        color="#FFFFFF"
+        strokeWidth={2}
+      />
+    </TouchableOpacity>
+  </>
+) : (
+    <View
+      style={[
+        styles.viewfinderArea,
+        {
+          backgroundColor: isDark ? "#0F172A" : "#F1F5F9",
+        },
+      ]}
+    >
+      {/* Corner markers */}
+      {["tl", "tr", "bl", "br"].map((pos) => (
+        <View
+          key={pos}
+          style={[
+            styles.cornerMarker,
+            styles[`corner_${pos}` as keyof typeof styles] as any,
+            { borderColor: colors.primary },
+          ]}
+        />
+      ))}
+
+      <Camera
+        size={40}
+        color={colors.textDisabled}
+        strokeWidth={1.5}
+      />
+
+      <Text
+        style={[
+          styles.viewfinderLabel,
+          { color: colors.textSecondary },
+        ]}
+      >
+        Camera preview
+      </Text>
+
+      <Text
+        style={[
+          styles.viewfinderHint,
+          { color: colors.textDisabled },
+        ]}
+      >
+        Tap to open camera
+      </Text>
+    </View>
+  )}
+</Card>
+
+{scanResult && (
+  <Animated.View
+    entering={FadeInDown.duration(400)}
+    exiting={FadeOutDown.duration(250)}
+  >
+    <Card
+      style={{
+        marginTop: 20,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+    >
+<Text
+  style={{
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: 10,
+  }}
+>
+  {scanType === "website" && "🌐 Website"}
+  {scanType === "email" && "📧 Email"}
+  {scanType === "phone" && "📞 Phone Number"}
+  {scanType === "wifi" && "📶 Wi-Fi"}
+  {scanType === "text" && "📝 Text"}
+</Text>
+
+    <Text
+      style={{
+        color: colors.textSecondary,
+        marginBottom: 20,
+      }}
+    >
+      {scanResult}
+    </Text>
+
+{scanType === "website" && (
+  <TouchableOpacity
+    style={[
+      styles.actionButton,
+      {
+        backgroundColor: colors.primary,
+        marginBottom: 12,
+      },
+    ]}
+    onPress={() => Linking.openURL(scanResult!)}
+  >
+    <Text style={{ color: "#fff", fontWeight: "600" }}>
+      Open Website
+    </Text>
+  </TouchableOpacity>
+)}
+
+{scanType === "phone" && (
+  <TouchableOpacity
+    style={[
+      styles.actionButton,
+      {
+        backgroundColor: colors.primary,
+        marginBottom: 12,
+      },
+    ]}
+    onPress={() =>
+      Linking.openURL(
+        scanResult!.startsWith("tel:")
+          ? scanResult!
+          : `tel:${scanResult}`
+      )
+    }
+  >
+    <Text style={{ color: "#fff", fontWeight: "600" }}>
+      Call Number
+    </Text>
+  </TouchableOpacity>
+)}
+
+{scanType === "email" && (
+  <TouchableOpacity
+    style={[
+      styles.actionButton,
+      {
+        backgroundColor: colors.primary,
+        marginBottom: 12,
+      },
+    ]}
+    onPress={() =>
+      Linking.openURL(
+        scanResult!.startsWith("mailto:")
+          ? scanResult!
+          : `mailto:${scanResult}`
+      )
+    }
+  >
+    <Text style={{ color: "#fff", fontWeight: "600" }}>
+      Compose Email
+    </Text>
+  </TouchableOpacity>
+)}
+
+{scanType === "text" && (
+  <TouchableOpacity
+    style={[
+      styles.actionButton,
+      {
+        backgroundColor: colors.primary,
+        marginBottom: 12,
+      },
+    ]}
+    onPress={async () => {
+      await Clipboard.setStringAsync(scanResult!);
+    }}
+  >
+    <Text
+      style={{
+        color: "#fff",
+        fontWeight: "600",
+      }}
+    >
+      Copy Text
+    </Text>
+  </TouchableOpacity>
+)}
+
+{scanType === "wifi" && (
+  <TouchableOpacity
+    style={[
+      styles.actionButton,
+      {
+        backgroundColor: colors.primary,
+        marginBottom: 12,
+      },
+    ]}
+    onPress={async () => {
+      await Clipboard.setStringAsync(scanResult!);
+    }}
+  >
+    <Text
+      style={{
+        color: "#fff",
+        fontWeight: "600",
+      }}
+    >
+      Copy Wi-Fi Details
+    </Text>
+  </TouchableOpacity>
+)}
+
+    <TouchableOpacity
+      style={[
+        styles.actionButton,
+        {
+          backgroundColor: colors.primary,
+        },
+      ]}
+    onPress={() => {
+  setScanResult(null);
+  setScanned(false);
+  setCameraOpen(true);
+}}
+    >
+      <Text
+        style={{
+          color: "#fff",
+          fontWeight: "600",
+        }}
+      >
+        Scan Again
+      </Text>
+    </TouchableOpacity>
+      </Card>
+  </Animated.View>
+)}
+
+<View
+  style={{
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+  }}
+>
+  <TouchableOpacity
+    style={[
+      styles.actionButton,
+      {
+        flex: 1,
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+      },
+    ]}
+   onPress={async () => {
+  await Clipboard.setStringAsync(scanResult!);
+}}
+  >
+    <Text style={{ color: colors.text }}>
+      Copy
+    </Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={[
+      styles.actionButton,
+      {
+        flex: 1,
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+      },
+    ]}
+    onPress={() =>
+      Share.share({
+        message: scanResult!,
+      })
+    }
+  >
+    <Text style={{ color: colors.text }}>
+      Share
+    </Text>
+  </TouchableOpacity>
+</View>
 
             <TouchableOpacity
               style={[
@@ -216,6 +655,15 @@ export default function QRScreen() {
                 { backgroundColor: colors.primary },
               ]}
               activeOpacity={0.85}
+              onPress={async () => {
+  if (!permission?.granted) {
+    const response = await requestPermission();
+
+    if (!response.granted) return;
+  }
+
+  setCameraOpen(true);
+}}
             >
               <Camera size={20} color="#FFFFFF" strokeWidth={2} />
               <Text style={styles.openCameraLabel}>Open Camera</Text>
@@ -425,9 +873,21 @@ export default function QRScreen() {
           <SectionHeader
             title="Recent QR Codes"
             actionLabel="Clear"
-            onAction={() => {}}
+       onAction={clearHistory}
           />
-          {QR_HISTORY_PLACEHOLDER.map((item) => (
+
+          {history.length === 0 ? (
+  <Text
+    style={{
+      textAlign: "center",
+      color: colors.textSecondary,
+      marginTop: 20,
+    }}
+  >
+    No QR codes scanned yet.
+  </Text>
+) : (
+         history.map((item) => (
             <TouchableOpacity
               key={item.id}
               style={[
@@ -440,32 +900,62 @@ export default function QRScreen() {
               ]}
               activeOpacity={0.75}
             >
-              <View
-                style={[
-                  styles.historyIcon,
-                  { backgroundColor: hexToRgba(item.color, isDark ? 0.15 : 0.09) },
-                ]}
-              >
-                <QrCode size={20} color={item.color} strokeWidth={2} />
-              </View>
-              <View style={styles.historyInfo}>
-                <Text
-                  style={[styles.historyType, { color: colors.textSecondary }]}
-                >
-                  {item.type}
-                </Text>
-                <Text
-                  style={[styles.historyContent, { color: colors.text }]}
-                  numberOfLines={1}
-                >
-                  {item.content}
-                </Text>
-              </View>
+             <View
+  style={[
+    styles.historyIcon,
+    {
+      backgroundColor: hexToRgba(colors.primary, 0.12),
+    },
+  ]}
+>
+  {item.type === "website" && (
+    <Link size={20} color={colors.primary} strokeWidth={2} />
+  )}
+
+  {item.type === "email" && (
+    <Mail size={20} color={colors.primary} strokeWidth={2} />
+  )}
+
+  {item.type === "phone" && (
+    <Phone size={20} color={colors.primary} strokeWidth={2} />
+  )}
+
+  {item.type === "wifi" && (
+    <Wifi size={20} color={colors.primary} strokeWidth={2} />
+  )}
+
+  {item.type === "text" && (
+    <Clipboard size={20} color={colors.primary} strokeWidth={2} />
+  )}
+</View>
+
+  <View style={styles.historyInfo}>
+        <Text
+          style={[styles.historyType, { color: colors.textSecondary }]}
+        >
+          {item.type === "website" && "Website"}
+          {item.type === "email" && "Email"}
+          {item.type === "phone" && "Phone"}
+          {item.type === "wifi" && "Wi-Fi"}
+          {item.type === "text" && "Text"}
+        </Text>
+
+
+          <Text
+          style={[styles.historyContent, { color: colors.text }]}
+          numberOfLines={1}
+        >
+          {item.content}
+        </Text>
+      </View>
+
+
               <Text style={[styles.historyDate, { color: colors.textDisabled }]}>
                 {item.createdAt}
               </Text>
             </TouchableOpacity>
-          ))}
+                   ))
+)}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -721,4 +1211,27 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     flexShrink: 0,
   },
+  actionButton: {
+  paddingVertical: 14,
+  borderRadius: 14,
+  alignItems: "center",
+},
+flashButton: {
+  position: "absolute",
+  right: 16,
+  top: 16,
+  width: 46,
+  height: 46,
+  borderRadius: 23,
+  alignItems: "center",
+  justifyContent: "center",
+},
+scanLine: {
+  position: "absolute",
+  top: 15,
+  left: 30,
+  right: 30,
+  height: 3,
+  borderRadius: 10,
+},
 });

@@ -374,10 +374,6 @@ switch (tool.id) {
     handleSplitPDF();
     break;
 
-  case "pdf-to-image":
-    handlePdfToImage();
-    break;
-
   default:
     console.log("No handler:", tool.id);
     break;
