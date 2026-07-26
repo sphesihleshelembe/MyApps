@@ -20,11 +20,14 @@ export default function OCRResultScreen() {
   const router = useRouter();
 
 const [text, setText] = useState(
-  OCRSession.getText()
-); const handleCopy = async () => {
- await Clipboard.setStringAsync(text);
+  OCRSession.getText() ?? ""
+);
+
+const handleCopy = async () => {
+  await Clipboard.setStringAsync(text);
   alert("Text copied to clipboard.");
 };
+
 const handleShare = async () => {
   try {
     await Share.share({

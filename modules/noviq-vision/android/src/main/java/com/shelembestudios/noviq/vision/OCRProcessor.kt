@@ -5,8 +5,9 @@ import android.net.Uri
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import java.io.File
 
 
 object OCRProcessor {
@@ -16,9 +17,15 @@ object OCRProcessor {
         imagePath: String
     ): String {
 
+        val uri = if (imagePath.startsWith("file://")) {
+            Uri.parse(imagePath)
+        } else {
+            Uri.fromFile(File(imagePath))
+        }
+
         val image = InputImage.fromFilePath(
             context,
-            Uri.parse(imagePath)
+            uri
         )
 
         val recognizer = TextRecognition
@@ -31,17 +38,17 @@ object OCRProcessor {
             recognizer.process(image)
                 .addOnSuccessListener { result ->
 
+                    recognizer.close()
+
                     continuation.resume(
                         result.text
                     )
-
                 }
                 .addOnFailureListener {
 
-                    continuation.resume(
-                        ""
-                    )
+                    recognizer.close()
 
+                    continuation.resume("")
                 }
         }
     }

@@ -100,26 +100,27 @@ return (
       resizeMode="contain"
     />
 
-    <View style={styles.bottomBar}>
+<View style={styles.bottomBar}>
 
-<TouchableOpacity
-  style={styles.secondaryButton}
-  onPress={handleRetake}
->        <Text style={styles.secondaryText}>
-          Retake
-        </Text>
-      </TouchableOpacity>
+  <TouchableOpacity
+    style={styles.secondaryButton}
+    onPress={handleRetake}
+  >
+    <Text style={styles.secondaryText}>
+      Retake
+    </Text>
+  </TouchableOpacity>
 
-<TouchableOpacity
-  style={styles.primaryButton}
-  onPress={handleExtractText}
->        <Text style={styles.primaryText}>
-          Extract Text
-        </Text>
-      </TouchableOpacity>
+  <TouchableOpacity
+    style={styles.primaryButton}
+    onPress={handleExtractText}
+  >
+    <Text style={styles.primaryText}>
+      Extract Text
+    </Text>
+  </TouchableOpacity>
 
-
-    </View>
+</View>
 
   </SafeAreaView>
 );

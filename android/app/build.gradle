@@ -87,12 +87,6 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    packaging {
-    resources {
-        excludes += "META-INF/DEPENDENCIES"
-    }
-}
-
     namespace 'com.shelembestudios.noviq'
     defaultConfig {
         applicationId 'com.shelembestudios.noviq'

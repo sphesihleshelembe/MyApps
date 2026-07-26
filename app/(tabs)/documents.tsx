@@ -336,8 +336,6 @@ const handlePdfToImage = () => {
             const IconComponent = (LucideIcons as any)[toPascalCase(tool.icon)];
             const bgColor = hexToRgba(toolColor, isDark ? 0.15 : 0.09);
 
-            console.log(tool.id, tool.label, tool.route);
-
             return (
               <TouchableOpacity
                 key={tool.id}
@@ -351,7 +349,6 @@ const handlePdfToImage = () => {
                 ]}
                 activeOpacity={0.75}
 onPress={() => {
-  console.log("Pressed:", tool.id);
 
 switch (tool.id) {
   case "scan-doc":

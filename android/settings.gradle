@@ -36,10 +36,7 @@ rootProject.name = 'Noviq'
 expoAutolinking.useExpoVersionCatalog()
 
 include ':app'
-
-include ':opencv'
-project(':opencv').projectDir = new File('../modules/noviq-vision/android/sdk')
-
 includeBuild(expoAutolinking.reactNativeGradlePlugin)
 
-
+include ':opencv'
+project(':opencv').projectDir = new File(rootDir, "../modules/noviq-vision/android/sdk")

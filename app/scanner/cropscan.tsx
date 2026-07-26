@@ -60,20 +60,28 @@ useEffect(() => {
     return;
   }
 
-  const scale = Math.min(
-    imageLayout.width / imageSize.width,
-    imageLayout.height / imageSize.height
-  );
+const IMAGE_MARGIN = 24;
 
-  const width = imageSize.width * scale;
-  const height = imageSize.height * scale;
+const availableWidth =
+  imageLayout.width - IMAGE_MARGIN * 2;
 
-  setDisplayedImage({
-    left: (imageLayout.width - width) / 2,
-    top: (imageLayout.height - height) / 2,
-    width,
-    height,
-  });
+const availableHeight =
+  imageLayout.height - IMAGE_MARGIN * 2;
+
+const scale = Math.min(
+  availableWidth / imageSize.width,
+  availableHeight / imageSize.height
+);
+
+const width = imageSize.width * scale;
+const height = imageSize.height * scale;
+
+setDisplayedImage({
+  left: IMAGE_MARGIN + (availableWidth - width) / 2,
+  top: IMAGE_MARGIN + (availableHeight - height) / 2,
+  width,
+  height,
+});
 }, [imageLayout, imageSize]);
 
 useEffect(() => {
@@ -204,8 +212,8 @@ return (
 </TouchableOpacity>
     </View>
 
-   <View
-  style={{ flex: 1 }}
+<View
+style={{ flex: 1 }}
   onLayout={(event: LayoutChangeEvent) => {
     const { x, y, width, height } = event.nativeEvent.layout;
 

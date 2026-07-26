@@ -38,6 +38,7 @@ const left = useSharedValue(0);
 const top = useSharedValue(0);
 const width = useSharedValue(imageWidth);
 const height = useSharedValue(imageHeight);
+const HANDLE_INSET = 10;
 
 useEffect(() => {
   left.value = 0;
@@ -53,14 +54,6 @@ const startHeight = useSharedValue(0);
 
 const MIN_SIZE = 80;
 
-const clamp = (
-  value: number,
-  min: number,
-  max: number
-) => {
-  return Math.min(Math.max(value, min), max);
-};
-
 const topLeftGesture = Gesture.Pan()
   .onBegin(() => {
     startLeft.value = left.value;
@@ -69,7 +62,6 @@ const topLeftGesture = Gesture.Pan()
     startHeight.value = height.value;
   })
   .onUpdate((event) => {
-
     const newLeft = startLeft.value + event.translationX;
     const newTop = startTop.value + event.translationY;
 
@@ -79,24 +71,21 @@ const topLeftGesture = Gesture.Pan()
     const newHeight =
       startHeight.value - event.translationY;
 
-
     if (
       newLeft >= 0 &&
-      newWidth > 80
+      newWidth > MIN_SIZE
     ) {
       left.value = newLeft;
       width.value = newWidth;
     }
 
-
     if (
       newTop >= 0 &&
-      newHeight > 80
+      newHeight > MIN_SIZE
     ) {
       top.value = newTop;
       height.value = newHeight;
     }
-
   });
 
 const bottomLeftGesture = Gesture.Pan()
@@ -106,44 +95,38 @@ const bottomLeftGesture = Gesture.Pan()
     startHeight.value = height.value;
   })
   .onUpdate((event) => {
-
     const newLeft =
       startLeft.value + event.translationX;
 
     const newWidth =
       startWidth.value - event.translationX;
 
-
     if (
       newLeft >= 0 &&
-      newWidth > 80
+      newWidth > MIN_SIZE
     ) {
       left.value = newLeft;
       width.value = newWidth;
     }
 
-
     const newHeight =
       startHeight.value + event.translationY;
 
-
     if (
-      top.value + newHeight <= imageHeight &&
-      newHeight > 80
+      newHeight > MIN_SIZE &&
+      top.value + newHeight <= imageHeight
     ) {
       height.value = newHeight;
     }
-
   });
 
-  const topRightGesture = Gesture.Pan()
+ const topRightGesture = Gesture.Pan()
   .onBegin(() => {
     startTop.value = top.value;
     startWidth.value = width.value;
     startHeight.value = height.value;
   })
   .onUpdate((event) => {
-
     const newWidth =
       startWidth.value + event.translationX;
 
@@ -153,23 +136,20 @@ const bottomLeftGesture = Gesture.Pan()
     const newHeight =
       startHeight.value - event.translationY;
 
-
     if (
-      newWidth > 80 &&
+      newWidth > MIN_SIZE &&
       left.value + newWidth <= imageWidth
     ) {
       width.value = newWidth;
     }
 
-
     if (
       newTop >= 0 &&
-      newHeight > 80
+      newHeight > MIN_SIZE
     ) {
       top.value = newTop;
       height.value = newHeight;
     }
-
   });
 
   const bottomRightGesture = Gesture.Pan()
@@ -178,31 +158,26 @@ const bottomLeftGesture = Gesture.Pan()
     startHeight.value = height.value;
   })
   .onUpdate((event) => {
-
     const newWidth =
       startWidth.value + event.translationX;
 
     const newHeight =
       startHeight.value + event.translationY;
 
-
     if (
-      newWidth > 80 &&
+      newWidth > MIN_SIZE &&
       left.value + newWidth <= imageWidth
     ) {
       width.value = newWidth;
     }
 
-
     if (
-      newHeight > 80 &&
+      newHeight > MIN_SIZE &&
       top.value + newHeight <= imageHeight
     ) {
       height.value = newHeight;
     }
-
   });
-
 const pan = Gesture.Pan()
   .onBegin(() => {
     startLeft.value = left.value;
@@ -224,26 +199,26 @@ const pan = Gesture.Pan()
 
 const topLeftStyle = useAnimatedStyle(() => {
   return {
-    left: left.value,
-    top: top.value,
+    left: left.value + HANDLE_INSET,
+    top: top.value + HANDLE_INSET,
   };
 });
 const topRightStyle = useAnimatedStyle(() => {
   return {
-    left: left.value + width.value,
-    top: top.value,
+    left: left.value + width.value - HANDLE_INSET,
+    top: top.value + HANDLE_INSET,
   };
 });
 const bottomLeftStyle = useAnimatedStyle(() => {
   return {
-    left: left.value,
-    top: top.value + height.value,
+    left: left.value + HANDLE_INSET,
+    top: top.value + height.value - HANDLE_INSET,
   };
 });
 const bottomRightStyle = useAnimatedStyle(() => {
   return {
-    left: left.value + width.value,
-    top: top.value + height.value,
+    left: left.value + width.value - HANDLE_INSET,
+    top: top.value + height.value - HANDLE_INSET,
   };
 });
 
@@ -354,38 +329,47 @@ return (
   <View style={styles.horizontalLine} />
 </Animated.View>
 
-  <GestureDetector gesture={topLeftGesture}>
+<GestureDetector gesture={topLeftGesture}>
   <Animated.View
     style={[
-      styles.handle,
+      styles.handleTouchArea,
       topLeftStyle,
     ]}
-  />
+  >
+    <View style={styles.handle} />
+  </Animated.View>
 </GestureDetector>
 
-  <GestureDetector gesture={topRightGesture}>
+<GestureDetector gesture={topRightGesture}>
   <Animated.View
     style={[
-      styles.handle,
+      styles.handleTouchArea,
       topRightStyle,
     ]}
-  />
+  >
+    <View style={styles.handle} />
+  </Animated.View>
 </GestureDetector>
-   <GestureDetector gesture={bottomLeftGesture}>
+
+<GestureDetector gesture={bottomLeftGesture}>
   <Animated.View
     style={[
-      styles.handle,
+      styles.handleTouchArea,
       bottomLeftStyle,
     ]}
-  />
+  >
+    <View style={styles.handle} />
+  </Animated.View>
 </GestureDetector>
-   <GestureDetector gesture={bottomRightGesture}>
+ <GestureDetector gesture={bottomRightGesture}>
   <Animated.View
     style={[
-      styles.handle,
+      styles.handleTouchArea,
       bottomRightStyle,
     ]}
-  />
+  >
+    <View style={styles.handle} />
+  </Animated.View>
 </GestureDetector>
 
   </View>
@@ -399,14 +383,21 @@ const styles = StyleSheet.create({
     borderColor: "#00AEEF",
   },
 
-  handle: {
+handleTouchArea: {
   position: "absolute",
+  width: 48,
+  height: 48,
+  marginLeft: -24,
+  marginTop: -24,
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+handle: {
   width: 20,
   height: 20,
   borderRadius: 10,
   backgroundColor: "#00AEEF",
-  marginLeft: -10,
-  marginTop: -10,
 },
 darkArea: {
   position: "absolute",

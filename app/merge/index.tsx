@@ -16,6 +16,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Typography, Spacing, BorderRadius, Shadows } from "@/theme";
 import { FileText, Plus, Layers, X, GripVertical } from "lucide-react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
+import * as FileSystem from "expo-file-system/legacy";
 
 export default function MergeScreen() {
   const [pdfs, setPdfs] = useState<DocumentPicker.DocumentPickerAsset[]>([]);
@@ -68,12 +69,27 @@ const mergePDFs = async () => {
   setMerging(true);
 
   try {
-    const paths = pdfs.map((pdf) => pdf.uri.replace("file://", ""));
+    const paths = pdfs.map((pdf) =>
+      pdf.uri.replace("file://", "")
+    );
 
     const result = await NoviqPdf.merge(paths);
 
     if (result.success && result.outputPath) {
+
+      const permission =
+        await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert(
+          "Cancelled",
+          "Folder permission was not granted."
+        );
+        return;
+      }
+
       const saved = await savePdf(
+        permission.directoryUri,
         result.outputPath,
         `Merged_${Date.now()}.pdf`
       );
@@ -89,18 +105,19 @@ const mergePDFs = async () => {
           "The merged PDF was not saved."
         );
       }
+
     } else {
       Alert.alert(
         "Error",
         result.error ?? "Merge failed"
       );
     }
-  } catch (e) {
-    console.error(e);
 
+  } catch (error) {
+    console.error("Merge failed:", error);
     Alert.alert(
       "Error",
-      "Something went wrong while merging the PDFs."
+      "Something went wrong while merging PDFs."
     );
   } finally {
     setMerging(false);
