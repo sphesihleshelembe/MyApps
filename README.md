@@ -142,7 +142,7 @@ assets/
 
 **Sphesihle Shelembe**
 
-Founder of **Shelembe Studios**
+Founder of **ShelembeStudios**
 
 ---
 
