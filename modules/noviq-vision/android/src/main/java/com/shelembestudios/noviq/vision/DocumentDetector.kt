@@ -75,7 +75,7 @@ Imgproc.findContours(
     edges,
     contours,
     hierarchy,
-    Imgproc.RETR_LIST,
+    Imgproc.RETR_EXTERNAL,
     Imgproc.CHAIN_APPROX_SIMPLE
 )
 
