@@ -31,20 +31,15 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
 }
 expoAutolinking.useExpoModules()
 
-rootProject.name = 'Noviq'
+rootProject.name = 'Noviq-Document Scanner and PDF Tools '
 
 expoAutolinking.useExpoVersionCatalog()
 
 include ':app'
-
-
-
-include ':opencv'
-
-project(':opencv').projectDir =
-
-    new File(rootDir, '../modules/noviq-vision/android/sdk')
-
-
-
 includeBuild(expoAutolinking.reactNativeGradlePlugin)
+
+include(":opencv")
+project(":opencv").projectDir = new File(
+    rootDir,
+    "../modules/noviq-vision/android/sdk"
+)

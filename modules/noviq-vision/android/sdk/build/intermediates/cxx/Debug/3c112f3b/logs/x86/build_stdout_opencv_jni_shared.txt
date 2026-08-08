@@ -1,2 +1,0 @@
-ninja: Entering directory `C:\Users\sphes\Desktop\Noviq\modules\noviq-vision\android\sdk\.cxx\Debug\3c112f3b\x86'
-ninja: no work to do.

@@ -225,47 +225,48 @@ const renderPreview = () => {
 )}
   </View>
 
-  {/* Bottom Panel */}
-  <View style={styles.bottomPanel}>
+{/* Bottom Panel */}
+<View style={styles.bottomPanel}>
 
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.filterContainer}
-    >
-      {FILTERS.map((filter) => (
-        <TouchableOpacity
-          key={filter}
-          style={[
-            styles.filterButton,
-            selectedFilter === filter &&
-              styles.selectedFilterButton,
-          ]}
-          onPress={() => handleFilterPress(filter)}
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={styles.filterContainer}
+  >
+    {FILTERS.map((filter) => (
+      <TouchableOpacity
+        key={filter}
+        style={[
+          styles.filterButton,
+          selectedFilter === filter &&
+            styles.selectedFilterButton,
+        ]}
+        onPress={() => handleFilterPress(filter)}
+      >
+        <Text
+          style={{
+            color:
+              selectedFilter === filter
+                ? "#FFF"
+                : "#000",
+            fontWeight: "600",
+          }}
         >
-          <Text
-            style={{
-              color:
-                selectedFilter === filter
-                  ? "#FFF"
-                  : "#000",
-              fontWeight: "600",
-            }}
-          >
-            {FILTER_LABELS[filter]}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
+          {FILTER_LABELS[filter]}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </ScrollView>
 
-    <TouchableOpacity
-      style={styles.applyButton}
-      onPress={handleDone}
-    >
-      <Text style={styles.applyButtonText}>
-        Apply
-      </Text>
-    </TouchableOpacity>
+  <TouchableOpacity
+    style={styles.applyButton}
+    onPress={handleDone}
+  >
+    <Text style={styles.applyButtonText}>
+      Apply
+    </Text>
+  </TouchableOpacity>
+
 
   </View>
 
@@ -275,25 +276,27 @@ const renderPreview = () => {
 
 }
   const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+container: {
+  flex: 1,
+  backgroundColor: "#F5F7FA",
+},
 
-  header: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
+header: {
+  height: 56,
+  flexDirection: "row",
+  alignItems: "center",
+  paddingHorizontal: 16,
+  backgroundColor: "#F5F7FA",
+},
 
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-  },
+backButton: {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: "#FFFFFF",
+},
 
   image: {
     flex: 1,
@@ -316,8 +319,9 @@ filterButton: {
   paddingVertical: 10,
   paddingHorizontal: 18,
   borderRadius: 20,
+  backgroundColor: "#FFFFFF",
   borderWidth: 1,
-  borderColor: "#E5E5E5",
+  borderColor: "#D9E2EC",
   marginRight: 12,
 },
 
@@ -342,14 +346,20 @@ applyButtonText: {
 
 previewContainer: {
   flex: 1,
+  margin: 16,
+backgroundColor: "#EAF4FF",  // light Noviq blue
+ borderRadius: 18,
   justifyContent: "center",
   alignItems: "center",
+  overflow: "hidden",
 },
 
 bottomPanel: {
-  borderTopWidth: 1,
-  borderTopColor: "#E5E5E5",
   backgroundColor: "#FFFFFF",
-  paddingBottom: 10,
+  borderTopLeftRadius: 24,
+  borderTopRightRadius: 24,
+  paddingTop: 10,
+  paddingBottom: 20,
+  elevation: 8,
 },
 });

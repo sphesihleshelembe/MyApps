@@ -39,3 +39,15 @@ yarn-error.*
 
 # EAS
 .easignore
+
+# Android build files
+android/**/build/
+android/**/.cxx/
+
+# Native module build files
+modules/**/build/
+modules/**/.cxx/
+
+# Signing keys
+*.jks
+*.keystore

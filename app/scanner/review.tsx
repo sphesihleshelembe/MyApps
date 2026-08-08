@@ -32,6 +32,7 @@ import { generatePdf, timestampName } from '@/services/pdf/PdfService';
 import { saveDocument } from '@/services/documents/DocumentStore';
 import type { ScanPage } from '@/types';
 import { SquarePen } from 'lucide-react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 import { savePdf } from "@/services/export";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -174,53 +175,95 @@ export default function ReviewScanScreen() {
 
       });
 
-         Alert.alert(
-  "Document Saved",
-  "Your scan has been saved to Noviq. Would you also like to save a copy to your device?",
-  [
-    {
-      text: "Not Now",
-      style: "cancel",
-    },
-    {
-      text: "Save Copy",
-      onPress: async () => {
-        const success = await savePdf(
-          result.path,
-          `${name}.pdf`
-        );
-
-        if (success) {
-          Alert.alert(
-            "Success",
-            "PDF saved to your selected folder."
-          );
-        } else {
-          Alert.alert(
-            "Cancelled",
-            "No PDF was exported."
-          );
-        }
+await new Promise<void>((resolve) => {
+  Alert.alert(
+    "Document Saved",
+    "Your scan has been saved to Noviq. Would you also like to save a copy to your device?",
+    [
+      {
+        text: "Not Now",
+        style: "cancel",
+        onPress: () => resolve(),
       },
-    },
-  ]
-);
+{
+  text: "Save Copy",
+  onPress: async () => {
+    try {
+      const permission =
+        await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
 
-   
-
-      setSaveProgress('Cleaning up…');
-      try {
-        await session.destroy();
-      } catch {
-        // Non-critical
+      if (!permission.granted) {
+        Alert.alert(
+          "Cancelled",
+          "No folder was selected."
+        );
+        resolve();
+        return;
       }
 
-      setSaveModalVisible(false);
-      setFinishing(false);
-      setGenerating(false);
-      setSaveProgress('');
+      const success = await savePdf(
+        permission.directoryUri,
+        result.path,
+        `${name}.pdf`
+      );
 
-      router.replace('/(tabs)/documents');
+      if (success) {
+        Alert.alert(
+          "Success",
+          "PDF saved to your selected folder.",
+          [
+            {
+              text: "OK",
+              onPress: () => resolve(),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Cancelled",
+          "No PDF was exported.",
+          [
+            {
+              text: "OK",
+              onPress: () => resolve(),
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("Save copy failed:", error);
+
+      Alert.alert(
+        "Error",
+        "Could not save the PDF to your selected folder.",
+        [
+          {
+            text: "OK",
+            onPress: () => resolve(),
+          },
+        ]
+      );
+    }
+  },
+},
+    ]
+  );
+});
+
+setSaveProgress('Cleaning up…');
+
+try {
+  await session.destroy();
+} catch {
+  // Non-critical
+}
+
+setSaveModalVisible(false);
+setFinishing(false);
+setGenerating(false);
+setSaveProgress('');
+
+router.replace('/(tabs)/documents');
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to generate PDF. Please try again.';
       setGenerateError(msg);

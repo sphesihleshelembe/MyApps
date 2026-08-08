@@ -190,25 +190,30 @@ router.back();
 
 
 return (
-  <View style={{ flex: 1, backgroundColor: "#fff" }}>
-    <View
-      style={{
-        height: 56,
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingHorizontal: 16,
-      }}
-    >
+  <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+  <View
+  style={{
+    height: 56,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    backgroundColor: "#FFFFFF",
+  }}
+>
       <TouchableOpacity onPress={() => router.back()}>
-        <Text>Cancel</Text>
+<Text style={{ fontSize: 16, fontWeight: "700" }}>
+  Cancel
+</Text>
       </TouchableOpacity>
 
     <TouchableOpacity
   onPress={handleApply}
   disabled={isApplying}
 >
-  <Text>Apply</Text>
+<Text style={{ fontSize: 16, fontWeight: "700" }}>
+  Apply
+</Text>
 </TouchableOpacity>
     </View>
 

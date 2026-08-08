@@ -13,6 +13,12 @@ import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius, Shadows } from '@/theme';
 import { SETTINGS_SECTIONS } from '@/constants/data';
 import type { SettingsItem } from '@/types';
+import { useRouter } from "expo-router";
+import { Share, Linking, Alert } from "react-native";
+import { Modal, Pressable } from "react-native";
+import { useThemeContext, ThemeMode } from "@/context/ThemeContext";
+import { Check, Moon, Sun, Smartphone } from "lucide-react-native";
+import * as StoreReview from "expo-store-review";
 
 function toPascalCase(str: string): string {
   return str
@@ -22,13 +28,72 @@ function toPascalCase(str: string): string {
 }
 
 export default function SettingsScreen() {
-  const { colors } = useTheme();
+const { colors, theme, setTheme } = useTheme();
+const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [toggleValues, setToggleValues] = useState<Record<string, boolean>>({});
 
   const handleToggle = (id: string, value: boolean) => {
     setToggleValues((prev) => ({ ...prev, [id]: value }));
   };
 
+  const selectTheme = async (mode: ThemeMode) => {
+  await setTheme(mode);
+  setThemeModalVisible(false);
+};
+
+  const router = useRouter();
+
+  const handleSettingPress = async (id: string) => {
+  switch (id) {
+    case "theme":
+      setThemeModalVisible(true);
+      break;
+
+    case "language":
+      Alert.alert(
+        "Language",
+        "More languages will be available in future updates."
+      );
+      break;
+
+    case "rate":
+  Linking.openURL(
+    "https://play.google.com/store/apps/details?id=com.shelembestudios.noviq"
+  );
+  break;
+
+    case "share":
+      await Share.share({
+        message:
+          "Scan documents, extract text (OCR), merge PDFs, generate QR codes, compress PDFs and more with Noviq.\n\nDownload it on Google Play:\nhttps://play.google.com/store/apps/details?id=com.shelembestudios.noviq",
+      });
+      break;
+
+    case "website":
+  Linking.openURL(
+    "https://shelembe-studios-website.vercel.app"
+  );
+  break;
+
+    case "support":
+  Linking.openURL(
+    "mailto:sphesihleshelembe12@gmail.com?subject=Noviq Support&body=Please describe your issue:"
+  );
+  break;
+
+  case "privacy": router.push("/settings/privacy"); 
+  break;
+
+    case "terms": router.push("/settings/terms"); 
+    break;
+
+   case "about":
+  Linking.openURL(
+    "https://shelembe-studios-website.vercel.app"
+  );
+  break;
+  }
+};
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
@@ -47,56 +112,64 @@ export default function SettingsScreen() {
           <Text
             style={[styles.screenSubtitle, { color: colors.textSecondary }]}
           >
-            Customize your Noviq experience
+            Manage your scanner and application settings
           </Text>
         </View>
 
-        {/* Profile Card */}
-        <View style={styles.profileWrapper}>
-          <View
-            style={[
-              styles.profileCard,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-              },
-              Shadows.sm,
-            ]}
-          >
-            <View
-              style={[
-                styles.profileAvatar,
-                { backgroundColor: colors.primaryLight },
-              ]}
-            >
-              <LucideIcons.User
-                size={28}
-                color={colors.primary}
-                strokeWidth={1.5}
-              />
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, { color: colors.text }]}>
-                Noviq User
-              </Text>
-              <Text
-                style={[styles.profileMeta, { color: colors.textSecondary }]}
-              >
-                Free Plan
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.upgradeButton,
-                { backgroundColor: colors.primary },
-              ]}
-              activeOpacity={0.85}
-            >
-              <LucideIcons.Zap size={14} color="#FFFFFF" strokeWidth={2} />
-              <Text style={styles.upgradeLabel}>Upgrade</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+ {/* App Card */}
+<View style={styles.profileWrapper}>
+  <View
+    style={[
+      styles.profileCard,
+      {
+        backgroundColor: colors.card,
+        borderColor: colors.border,
+      },
+      Shadows.sm,
+    ]}
+  >
+    <View
+      style={[
+        styles.profileAvatar,
+        { backgroundColor: colors.primaryLight },
+      ]}
+    >
+      <LucideIcons.Scan
+        size={28}
+        color={colors.primary}
+        strokeWidth={1.8}
+      />
+    </View>
+
+    <View style={styles.profileInfo}>
+      <Text style={[styles.profileName, { color: colors.text }]}>
+        Noviq
+      </Text>
+
+      <Text
+        style={[
+          styles.profileMeta,
+          { color: colors.textSecondary },
+        ]}
+      >
+        Smart Document Scanner
+
+      </Text>
+      <Text
+  style={[
+    styles.profileMeta,
+    {
+      color: colors.primary,
+      marginTop: 2,
+      fontWeight: "600",
+    },
+  ]}
+>
+  Version 1.0.0
+</Text>
+    </View>
+  </View>
+</View>
 
         {/* Settings Sections */}
         {SETTINGS_SECTIONS.map((section) => (
@@ -123,6 +196,7 @@ export default function SettingsScreen() {
                   isLast={index === section.items.length - 1}
                   toggleValue={toggleValues[item.id] ?? false}
                   onToggle={(v) => handleToggle(item.id, v)}
+                  onPress={handleSettingPress}
                 />
               ))}
             </View>
@@ -134,29 +208,118 @@ export default function SettingsScreen() {
           <View
             style={[styles.versionBadge, { backgroundColor: colors.primaryLight }]}
           >
-            <LucideIcons.Scan size={16} color={colors.primary} strokeWidth={2} />
+            <LucideIcons.Scan size={32} color={colors.primary} strokeWidth={2} />
           </View>
           <Text style={[styles.versionName, { color: colors.text }]}>Noviq</Text>
           <Text style={[styles.versionText, { color: colors.textDisabled }]}>
-            Version 1.0.0 — Shelembe Studios
+            Version 1.0.0
           </Text>
           <Text style={[styles.versionCopy, { color: colors.textDisabled }]}>
-            © 2025 Shelembe Studios. All rights reserved.
+            © 2026 Shelembe Studios. All rights reserved.
           </Text>
         </View>
       </ScrollView>
+      <Modal
+  visible={themeModalVisible}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setThemeModalVisible(false)}
+>
+  <Pressable
+    style={{
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 24,
+    }}
+    onPress={() => setThemeModalVisible(false)}
+  >
+    <Pressable
+      onPress={() => {}}
+      style={{
+        width: "100%",
+        maxWidth: 340,
+        backgroundColor: colors.card,
+        borderRadius: 20,
+        padding: 20,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 20,
+          fontWeight: "700",
+          color: colors.text,
+          marginBottom: 18,
+        }}
+      >
+        Choose Theme
+      </Text>
+
+      {[
+        { id: "system", label: "System Default", icon: Smartphone },
+        { id: "light", label: "Light", icon: Sun },
+        { id: "dark", label: "Dark", icon: Moon },
+      ].map((item) => {
+        const Icon = item.icon;
+
+        return (
+          <TouchableOpacity
+            key={item.id}
+            onPress={() => selectTheme(item.id as ThemeMode)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingVertical: 14,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Icon
+                size={20}
+                color={colors.primary}
+                style={{ marginRight: 12 }}
+              />
+              <Text
+                style={{
+                  color: colors.text,
+                  fontSize: 16,
+                  fontWeight: "600",
+                }}
+              >
+                {item.label}
+              </Text>
+            </View>
+
+            {theme === item.id && (
+              <Check size={20} color={colors.primary} />
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </Pressable>
+  </Pressable>
+</Modal>
     </SafeAreaView>
   );
 }
+
 
 interface SettingsRowProps {
   item: SettingsItem;
   isLast: boolean;
   toggleValue: boolean;
   onToggle: (v: boolean) => void;
+  onPress: (id: string) => void;
 }
 
-function SettingsRow({ item, isLast, toggleValue, onToggle }: SettingsRowProps) {
+function SettingsRow({
+  item,
+  isLast,
+  toggleValue,
+  onToggle,
+  onPress,
+}: SettingsRowProps) {
   const { colors } = useTheme();
   const IconComponent = (LucideIcons as any)[toPascalCase(item.icon)];
 
@@ -167,7 +330,11 @@ function SettingsRow({ item, isLast, toggleValue, onToggle }: SettingsRowProps) 
         !isLast && [styles.settingsRowBorder, { borderBottomColor: colors.divider }],
       ]}
       activeOpacity={item.type === 'toggle' ? 1 : 0.7}
-      onPress={item.type !== 'toggle' ? () => {} : undefined}
+onPress={
+  item.type !== "toggle"
+    ? () => onPress(item.id)
+    : undefined
+}
     >
       <View
         style={[
@@ -240,9 +407,9 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   profileAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -256,20 +423,6 @@ const styles = StyleSheet.create({
   },
   profileMeta: {
     ...Typography.caption,
-  },
-  upgradeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    gap: 5,
-    flexShrink: 0,
-  },
-  upgradeLabel: {
-    ...Typography.captionMedium,
-    color: '#FFFFFF',
-    fontSize: 12,
   },
 
   sectionWrapper: {

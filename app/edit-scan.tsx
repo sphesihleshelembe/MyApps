@@ -107,12 +107,6 @@ export default function EditScan() {
   return (
   <View style={styles.container}>
    <View style={styles.header}>
-  <TouchableOpacity
-    onPress={() => router.back()}
-    style={styles.backButton}
-  >
-    <ArrowLeft size={24} />
-  </TouchableOpacity>
 
  
 
@@ -142,7 +136,7 @@ export default function EditScan() {
       onPress={() => rotateImage(90)}
       disabled={isProcessing}
     >
-      <RotateCw size={24} color="#000" />
+     <RotateCw size={24} color="#00AEEF" />
       <Text style={styles.toolLabel}>Rotate</Text>
     </TouchableOpacity>
 
@@ -160,8 +154,8 @@ export default function EditScan() {
 }
       disabled={isProcessing}
     >
-      <Scissors size={24} color="#000" />
-      <Text style={styles.toolLabel}>Crop</Text>
+<Scissors size={24} color="#00AEEF" />
+<Text style={styles.toolLabel}>Crop</Text>
     </TouchableOpacity>
 
     {/* Filters - remove later */}
@@ -178,8 +172,8 @@ export default function EditScan() {
 }
       disabled={isProcessing}
     >
-      <Palette size={24} color="#000" />
-      <Text style={styles.toolLabel}>Filters</Text>
+<Palette size={24} color="#00AEEF" />
+<Text style={styles.toolLabel}>Filters</Text>
     </TouchableOpacity>
 
     </View>
@@ -189,46 +183,56 @@ export default function EditScan() {
   const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
+backgroundColor: "#FFFFFF"},
 
-  header: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
+header: {
+  height: 56,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingHorizontal: 16,
+  backgroundColor: "#FFFFFF",
+},
 
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-  },
+backButton: {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: "#1E293B",
+},
 
-  image: {
-    flex: 1,
-    width: '100%',
-  },
+image: {
+  flex: 1,
+  width: "100%",
+},
 
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
-  },
+toolbar: {
+  flexDirection: "row",
+  justifyContent: "space-around",
+  alignItems: "center",
+  paddingVertical: 16,
+  backgroundColor: "#111827",
+  borderTopWidth: 1,
+  borderTopColor: "#1E293B",
+},
 
-  toolButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
+toolButton: {
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+},
 
-  toolLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+toolLabel: {
+  fontSize: 12,
+  fontWeight: "600",
+  color: "#F8FAFC",
+},
+
+
+doneText: {
+  fontSize: 16,
+  fontWeight: "700",
+},
 });

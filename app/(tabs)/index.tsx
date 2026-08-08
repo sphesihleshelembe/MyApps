@@ -45,6 +45,57 @@ export default function HomeScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
+  const SEARCH_TOOLS = [
+  {
+    id: "scan",
+    title: "Scan Document",
+    keywords: ["scan", "camera", "document"],
+    route: "/scanner",
+  },
+  {
+    id: "merge",
+    title: "Merge PDF",
+    keywords: ["merge", "combine", "pdf"],
+    route: "/merge",
+  },
+  {
+    id: "split",
+    title: "Split PDF",
+    keywords: ["split", "pdf"],
+    route: "/split",
+  },
+  {
+    id: "compress",
+    title: "Compress PDF",
+    keywords: ["compress", "reduce", "pdf"],
+    route: "/compress",
+  },
+  {
+    id: "ocr",
+    title: "Extract Text",
+    keywords: ["ocr", "text", "extract"],
+    route: "/ocr",
+  },
+  {
+    id: "qr",
+    title: "QR Scanner & Generator",
+    keywords: ["qr", "barcode", "generator"],
+    route: "/qr",
+  },
+];
+
+const filteredTools =
+  searchQuery.trim() === ""
+    ? []
+    : SEARCH_TOOLS.filter((tool) => {
+        const query = searchQuery.toLowerCase();
+
+        return (
+          tool.title.toLowerCase().includes(query) ||
+          tool.keywords.some((k) => k.includes(query))
+        );
+      });
+
   const [savedDocs, setSavedDocs] = useState<StoredDocument[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
 
@@ -64,11 +115,33 @@ useFocusEffect(
     loadDocs();
   }, [loadDocs])
 );
-  const handleQuickAction = (actionId: string) => {
-    if (actionId === 'scan') {
-      router.push('/scanner');
-    }
-  };
+ const handleQuickAction = (id: string) => {
+  switch (id) {
+    case "scan":
+      router.push("/scanner");
+      break;
+
+    case "qr":
+      router.push("/qr");
+      break;
+
+    case "merge":
+      router.push("/merge");
+      break;
+
+    default:
+      break;
+  }
+};
+
+const hour = new Date().getHours();
+
+const greeting =
+  hour < 12
+    ? "Good morning"
+    : hour < 18
+    ? "Good afternoon"
+    : "Good evening";
 
   return (
     <SafeAreaView
@@ -91,15 +164,15 @@ useFocusEffect(
           
         </View>
 
-        {/* Greeting */}
-        <View style={styles.greetingSection}>
-          <Text style={[styles.greetingSubtitle, { color: colors.textSecondary }]}>
-            Good morning
-          </Text>
-          <Text style={[styles.greetingTitle, { color: colors.text }]}>
-            What would you like{'\n'}to do today?
-          </Text>
-        </View>
+      {/* Greeting */}
+<View style={styles.greetingSection}>
+  <Text style={[styles.greetingSubtitle, { color: colors.textSecondary }]}>
+    {greeting}
+  </Text>
+  <Text style={[styles.greetingTitle, { color: colors.text }]}>
+    What would you like{"\n"}to do today?
+  </Text>
+</View>
 
         {/* Search */}
         <View style={styles.searchWrapper}>
@@ -109,6 +182,39 @@ useFocusEffect(
             placeholder="Search tools, files..."
           />
         </View>
+
+        {filteredTools.length > 0 && (
+  <View
+    style={[
+      styles.searchResults,
+      {
+        backgroundColor: colors.card,
+        borderColor: colors.border,
+      },
+    ]}
+  >
+    {filteredTools.map((tool) => (
+      <TouchableOpacity
+        key={tool.id}
+        style={styles.searchResult}
+        onPress={() => {
+          setSearchQuery("");
+          router.push(tool.route as any);
+        }}
+      >
+        <Text
+          style={{
+            color: colors.text,
+            fontSize: 16,
+            fontWeight: "600",
+          }}
+        >
+          {tool.title}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+)}
 
         {/* Quick Actions */}
         <View style={styles.section}>
@@ -170,11 +276,6 @@ useFocusEffect(
               return (
                 <TouchableOpacity
                   key={tool.id}
-                  onPress={() => {
-  if (tool.id === 'compress-pdf') {
-    router.push('/compress');
-  }
-}}
                   style={[
                     styles.popularToolCard,
                     {
@@ -483,4 +584,17 @@ const styles = StyleSheet.create({
     ...Typography.body,
     lineHeight: 22,
   },
+  searchResults: {
+  marginTop: 8,
+  borderRadius: 16,
+  borderWidth: 1,
+  overflow: "hidden",
+},
+
+searchResult: {
+  paddingHorizontal: 16,
+  paddingVertical: 14,
+  borderBottomWidth: StyleSheet.hairlineWidth,
+  borderBottomColor: "#2A3441",
+},
 });

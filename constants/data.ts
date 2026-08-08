@@ -171,6 +171,20 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         icon: 'share-2',
         type: 'action',
       },
+      {
+        id: 'website',
+        label: 'Visit Website',
+        description: 'Learn more about Noviq',
+        icon: 'globe',
+        type: 'action',
+      },
+      {
+        id: 'support',
+        label: 'Contact Support',
+        description: 'Get help or report a problem',
+        icon: 'mail',
+        type: 'action',
+      },
     ],
   },
   {

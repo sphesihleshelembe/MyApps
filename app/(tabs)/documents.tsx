@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,6 @@ const CATEGORY_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'scan', label: 'Scan' },
   { id: 'pdf', label: 'PDF' },
-  { id: 'convert', label: 'Convert' },
   { id: 'ocr', label: 'OCR' },
 ];
 
@@ -68,6 +67,16 @@ export default function DocumentsScreen() {
       loadDocs();
     }, [loadDocs])
   );
+
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setTimeTick((tick) => tick + 1);
+  }, 60000);
+
+  return () => clearInterval(interval);
+}, []);
+
+const [timeTick, setTimeTick] = useState(0);
 
   const handleScanDocument = () => {
     router.push('/scanner');

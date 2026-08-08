@@ -226,11 +226,27 @@ const qrAnimatedStyle = useAnimatedStyle(() => ({
 }));
 
 
+const normalizeUrl = (url: string) => {
+  const trimmed = url.trim();
+
+  return /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+};
+
+const isValidUrl = (text: string) => {
+  try {
+    new URL(normalizeUrl(text));
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const getQrType = (value: string) => {
   const text = value.trim();
 
-  if (/^https?:\/\//i.test(text)) {
+  if (isValidUrl(text)) {
     return "website";
   }
 
@@ -333,7 +349,7 @@ await saveHistory(type, result.data);
 const getQrValue = () => {
   switch (selectedGenType) {
     case "url":
-      return inputValue;
+  return normalizeUrl(inputValue);
 
     case "email":
       return inputValue.startsWith("mailto:")
@@ -361,8 +377,16 @@ const getQrValue = () => {
 
 const isQrValid = () => {
   switch (selectedGenType) {
-    case "url":
-      return /^https?:\/\/.+/i.test(inputValue.trim());
+case "url": {
+  const value = inputValue.trim();
+
+  try {
+    new URL(normalizeUrl(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
     case "email":
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
