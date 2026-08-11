@@ -196,12 +196,6 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         icon: 'shield',
         type: 'navigate',
       },
-      {
-        id: 'terms',
-        label: 'Terms of Service',
-        icon: 'file-text',
-        type: 'navigate',
-      },
     ],
   },
   {

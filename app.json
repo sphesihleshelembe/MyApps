@@ -2,13 +2,14 @@
   "expo": {
     "name": "Noviq-Document Scanner and PDF Tools ",
     "slug": "noviq-document-scanner",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "noviq",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "android": {
+        "versionCode": 2,
       "adaptiveIcon": {
 
         "foregroundImage": "./assets/images/icon.png",

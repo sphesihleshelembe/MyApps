@@ -81,15 +81,13 @@ const [themeModalVisible, setThemeModalVisible] = useState(false);
   );
   break;
 
-  case "privacy": router.push("/settings/privacy"); 
+case "privacy":
+  Linking.openURL("https://shelembe-studios-website.vercel.app/privacy-policy");
   break;
-
-    case "terms": router.push("/settings/terms"); 
-    break;
 
    case "about":
   Linking.openURL(
-    "https://shelembe-studios-website.vercel.app"
+    "https://shelembe-studios-website.vercel.app/#products"
   );
   break;
   }

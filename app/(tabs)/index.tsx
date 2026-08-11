@@ -1,27 +1,35 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { FileText, Scan, Layers, Image as ImageIcon, QrCode } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { Scan, Layers, Image as ImageIcon, QrCode } from 'lucide-react-native';
 import * as LucideIcons from 'lucide-react-native';
+import * as IntentLauncher from 'expo-intent-launcher';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, BorderRadius, Shadows } from '@/theme';
 import { Card, SectionHeader, SearchBar } from '@/components';
-import { QUICK_ACTIONS, POPULAR_TOOLS, RECENT_FILES_PLACEHOLDER, TOOL_ICON_COLORS } from '@/constants/data';
-import { listDocuments, deleteDocument } from '@/services/documents/DocumentStore';
-import { useFocusEffect } from '@react-navigation/native';
-
-
+import { QUICK_ACTIONS, POPULAR_TOOLS, TOOL_ICON_COLORS } from '@/constants/data';
+import {
+  listDocuments,
+  deleteDocument,
+  StoredDocument,
+} from '@/services/documents/DocumentStore';
 
 const QUICK_ACTION_ICONS: Record<string, React.ElementType> = {
   scan: Scan,
-  'image': ImageIcon,
+  image: ImageIcon,
   'qr-code': QrCode,
   layers: Layers,
 };
@@ -44,104 +52,167 @@ export default function HomeScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [savedDocs, setSavedDocs] = useState<StoredDocument[]>([]);
+  const [selectedFile, setSelectedFile] = useState<StoredDocument | null>(null);
+  const [, setLoadingDocs] = useState(true);
 
   const SEARCH_TOOLS = [
-  {
-    id: "scan",
-    title: "Scan Document",
-    keywords: ["scan", "camera", "document"],
-    route: "/scanner",
-  },
-  {
-    id: "merge",
-    title: "Merge PDF",
-    keywords: ["merge", "combine", "pdf"],
-    route: "/merge",
-  },
-  {
-    id: "split",
-    title: "Split PDF",
-    keywords: ["split", "pdf"],
-    route: "/split",
-  },
-  {
-    id: "compress",
-    title: "Compress PDF",
-    keywords: ["compress", "reduce", "pdf"],
-    route: "/compress",
-  },
-  {
-    id: "ocr",
-    title: "Extract Text",
-    keywords: ["ocr", "text", "extract"],
-    route: "/ocr",
-  },
-  {
-    id: "qr",
-    title: "QR Scanner & Generator",
-    keywords: ["qr", "barcode", "generator"],
-    route: "/qr",
-  },
-];
+    {
+      id: 'scan',
+      title: 'Scan Document',
+      keywords: ['scan', 'camera', 'document'],
+      route: '/scanner',
+    },
+    {
+      id: 'merge',
+      title: 'Merge PDF',
+      keywords: ['merge', 'combine', 'pdf'],
+      route: '/merge',
+    },
+    {
+      id: 'split',
+      title: 'Split PDF',
+      keywords: ['split', 'pdf'],
+      route: '/split',
+    },
+    {
+      id: 'compress',
+      title: 'Compress PDF',
+      keywords: ['compress', 'reduce', 'pdf'],
+      route: '/compress',
+    },
+    {
+      id: 'ocr',
+      title: 'Extract Text',
+      keywords: ['ocr', 'text', 'extract'],
+      route: '/ocr',
+    },
+    {
+      id: 'qr',
+      title: 'QR Scanner & Generator',
+      keywords: ['qr', 'barcode', 'generator'],
+      route: '/qr',
+    },
+  ];
 
-const filteredTools =
-  searchQuery.trim() === ""
-    ? []
-    : SEARCH_TOOLS.filter((tool) => {
-        const query = searchQuery.toLowerCase();
+  const filteredTools =
+    searchQuery.trim() === ''
+      ? []
+      : SEARCH_TOOLS.filter((tool) => {
+          const query = searchQuery.toLowerCase();
+          return (
+            tool.title.toLowerCase().includes(query) ||
+            tool.keywords.some((k) => k.includes(query))
+          );
+        });
 
-        return (
-          tool.title.toLowerCase().includes(query) ||
-          tool.keywords.some((k) => k.includes(query))
-        );
+  const loadDocs = useCallback(async () => {
+    try {
+      const docs = await listDocuments();
+      setSavedDocs(docs);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingDocs(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDocs();
+    }, [loadDocs])
+  );
+
+  const openFile = async (file: StoredDocument) => {
+    try {
+      const uri = file.path.startsWith('file://')
+        ? file.path
+        : `file://${file.path}`;
+
+      const contentUri = await FileSystem.getContentUriAsync(uri);
+
+      await IntentLauncher.startActivityAsync(
+        'android.intent.action.VIEW',
+        {
+          data: contentUri,
+          type: 'application/pdf',
+          flags: 1,
+        }
+      );
+    } catch (error) {
+      console.error(error);
+      Alert.alert(
+        'Unable to open PDF',
+        'No PDF viewer is installed or the file could not be opened.'
+      );
+    }
+  };
+
+  const shareFile = async (file: StoredDocument) => {
+    try {
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert('Sharing unavailable', 'Sharing is not available on this device.');
+        return;
+      }
+
+      await Sharing.shareAsync(file.path, {
+        mimeType: 'application/pdf',
+        dialogTitle: `Share ${file.name}`,
       });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
-  const [savedDocs, setSavedDocs] = useState<StoredDocument[]>([]);
-  const [loadingDocs, setLoadingDocs] = useState(true);
+  const handleDelete = (file: StoredDocument) => {
+    Alert.alert(
+      'Delete file?',
+      `Are you sure you want to delete "${file.name}"?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDocument(file.id);
+              await loadDocs();
+            } catch (error) {
+              console.error(error);
+              Alert.alert('Error', 'Unable to delete the file.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
-const loadDocs = useCallback(async () => {
-  try {
-    const docs = await listDocuments();
-    setSavedDocs(docs);
-  } catch {
-    // ignore
-  } finally {
-    setLoadingDocs(false);
-  }
-}, []);
+  const handleQuickAction = (id: string) => {
+    switch (id) {
+      case 'scan':
+        router.push('/scanner');
+        break;
+      case 'qr':
+        router.push('/qr');
+        break;
+      case 'merge':
+        router.push('/merge');
+        break;
+      default:
+        break;
+    }
+  };
 
-useFocusEffect(
-  React.useCallback(() => {
-    loadDocs();
-  }, [loadDocs])
-);
- const handleQuickAction = (id: string) => {
-  switch (id) {
-    case "scan":
-      router.push("/scanner");
-      break;
-
-    case "qr":
-      router.push("/qr");
-      break;
-
-    case "merge":
-      router.push("/merge");
-      break;
-
-    default:
-      break;
-  }
-};
-
-const hour = new Date().getHours();
-
-const greeting =
-  hour < 12
-    ? "Good morning"
-    : hour < 18
-    ? "Good afternoon"
-    : "Good evening";
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12
+      ? 'Good morning'
+      : hour < 18
+      ? 'Good afternoon'
+      : 'Good evening';
 
   return (
     <SafeAreaView
@@ -161,18 +232,17 @@ const greeting =
             </View>
             <Text style={[styles.brandName, { color: colors.text }]}>Noviq</Text>
           </View>
-          
         </View>
 
-      {/* Greeting */}
-<View style={styles.greetingSection}>
-  <Text style={[styles.greetingSubtitle, { color: colors.textSecondary }]}>
-    {greeting}
-  </Text>
-  <Text style={[styles.greetingTitle, { color: colors.text }]}>
-    What would you like{"\n"}to do today?
-  </Text>
-</View>
+        {/* Greeting */}
+        <View style={styles.greetingSection}>
+          <Text style={[styles.greetingSubtitle, { color: colors.textSecondary }]}>
+            {greeting}
+          </Text>
+          <Text style={[styles.greetingTitle, { color: colors.text }]}>
+            What would you like{'\n'}to do today?
+          </Text>
+        </View>
 
         {/* Search */}
         <View style={styles.searchWrapper}>
@@ -184,37 +254,37 @@ const greeting =
         </View>
 
         {filteredTools.length > 0 && (
-  <View
-    style={[
-      styles.searchResults,
-      {
-        backgroundColor: colors.card,
-        borderColor: colors.border,
-      },
-    ]}
-  >
-    {filteredTools.map((tool) => (
-      <TouchableOpacity
-        key={tool.id}
-        style={styles.searchResult}
-        onPress={() => {
-          setSearchQuery("");
-          router.push(tool.route as any);
-        }}
-      >
-        <Text
-          style={{
-            color: colors.text,
-            fontSize: 16,
-            fontWeight: "600",
-          }}
-        >
-          {tool.title}
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </View>
-)}
+          <View
+            style={[
+              styles.searchResults,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            {filteredTools.map((tool) => (
+              <TouchableOpacity
+                key={tool.id}
+                style={styles.searchResult}
+                onPress={() => {
+                  setSearchQuery('');
+                  router.push(tool.route as any);
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.text,
+                    fontSize: 16,
+                    fontWeight: '600',
+                  }}
+                >
+                  {tool.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Quick Actions */}
         <View style={styles.section}>
@@ -259,11 +329,12 @@ const greeting =
 
         {/* Popular Tools */}
         <View style={styles.section}>
-        <SectionHeader 
-  title="Popular Tools" 
-  actionLabel="See all" 
-  onAction={() => router.push('/documents')} 
-/>
+          <SectionHeader
+            title="Popular Tools"
+            actionLabel="See all"
+            onAction={() => router.push('/documents')}
+          />
+
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -273,6 +344,7 @@ const greeting =
               const toolColor = TOOL_ICON_COLORS[tool.id] ?? colors.primary;
               const IconComponent = (LucideIcons as any)[toPascalCase(tool.icon)];
               const bgColor = hexToRgba(toolColor, isDark ? 0.15 : 0.09);
+
               return (
                 <TouchableOpacity
                   key={tool.id}
@@ -293,9 +365,14 @@ const greeting =
                     ]}
                   >
                     {IconComponent && (
-                      <IconComponent size={24} color={toolColor} strokeWidth={2} />
+                      <IconComponent
+                        size={24}
+                        color={toolColor}
+                        strokeWidth={2}
+                      />
                     )}
                   </View>
+
                   {tool.isNew && (
                     <View
                       style={[
@@ -306,8 +383,12 @@ const greeting =
                       <Text style={styles.newBadgeText}>NEW</Text>
                     </View>
                   )}
+
                   <Text
-                    style={[styles.popularToolLabel, { color: colors.text }]}
+                    style={[
+                      styles.popularToolLabel,
+                      { color: colors.text },
+                    ]}
                     numberOfLines={2}
                   >
                     {tool.label}
@@ -318,88 +399,187 @@ const greeting =
           </ScrollView>
         </View>
 
-       {/* Recent Files */}
-<View style={styles.section}>
- <SectionHeader
-  title="Recent Files"
-  actionLabel="View all"
-  onAction={() => router.push('/documents')}
-/>
+        {/* Recent Files */}
+        <View style={styles.section}>
+          <SectionHeader
+            title="Recent Files"
+            actionLabel="See all"
+            onAction={() => router.push('/documents')}
+          />
 
-  {savedDocs.length === 0 ? (
-    <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-      No recent files yet.
-    </Text>
-  ) : (
-    savedDocs.slice(0, 5).map((file) => (
-      <TouchableOpacity
-        key={file.id}
-        style={[
-          styles.fileRow,
-          {
-            backgroundColor: colors.card,
-            borderColor: colors.border,
-          },
-          Shadows.sm,
-        ]}
-        activeOpacity={0.75}
-      >
-        <View
-          style={[
-            styles.fileIconContainer,
-            { backgroundColor: hexToRgba(colors.primary, 0.09) },
-          ]}
-        >
-          <FileText size={20} color={colors.primary} strokeWidth={2} />
+          {savedDocs.length === 0 ? (
+            <Text
+              style={[
+                styles.emptyText,
+                { color: colors.textSecondary },
+              ]}
+            >
+              No recent files yet.
+            </Text>
+          ) : (
+            savedDocs.slice(0, 5).map((file) => (
+              <TouchableOpacity
+                key={file.id}
+                style={[
+                  styles.fileRow,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                  },
+                  Shadows.sm,
+                ]}
+                activeOpacity={0.75}
+              >
+                <View
+                  style={[
+                    styles.fileIconContainer,
+                    {
+                      backgroundColor: hexToRgba(colors.primary, 0.09),
+                    },
+                  ]}
+                >
+                  <LucideIcons.FileText
+                    size={20}
+                    color={colors.primary}
+                    strokeWidth={2}
+                  />
+                </View>
+
+                <View style={styles.fileInfo}>
+                  <Text
+                    style={[
+                      styles.fileName,
+                      { color: colors.text },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {file.name}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.fileMeta,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {file.size} — {file.createdAt}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => setSelectedFile(file)}
+                  hitSlop={10}
+                >
+                  <LucideIcons.MoreVertical
+                    size={18}
+                    color={colors.textDisabled}
+                    strokeWidth={2}
+                  />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
-
-        <View style={styles.fileInfo}>
-          <Text
-            style={[styles.fileName, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            {file.name}
-          </Text>
-
-          <Text
-            style={[styles.fileMeta, { color: colors.textSecondary }]}
-          >
-            {file.size} — {file.createdAt}
-          </Text>
-        </View>
-
-        <LucideIcons.MoreVertical
-          size={18}
-          color={colors.textDisabled}
-          strokeWidth={2}
-        />
-      </TouchableOpacity>
-    ))
-  )}
-</View>
 
         {/* Tips Card */}
         <View style={[styles.section, styles.lastSection]}>
           <Card
-            style={[styles.tipsCard, { borderColor: colors.primaryLight, borderWidth: 1.5 }]}
+            style={[
+              styles.tipsCard,
+              {
+                borderColor: colors.primaryLight,
+                borderWidth: 1.5,
+              },
+            ]}
             shadow="none"
           >
             <View style={styles.tipsHeader}>
-              <View style={[styles.tipsBadge, { backgroundColor: colors.primary }]}>
+              <View
+                style={[
+                  styles.tipsBadge,
+                  { backgroundColor: colors.primary },
+                ]}
+              >
                 <Text style={styles.tipsBadgeText}>TIP</Text>
               </View>
             </View>
-            <Text style={[styles.tipsTitle, { color: colors.text }]}>
+
+            <Text
+              style={[
+                styles.tipsTitle,
+                { color: colors.text },
+              ]}
+            >
               Scan in good lighting
             </Text>
-            <Text style={[styles.tipsBody, { color: colors.textSecondary }]}>
+
+            <Text
+              style={[
+                styles.tipsBody,
+                { color: colors.textSecondary },
+              ]}
+            >
               For the sharpest scans, place your document on a flat, contrasting
-              surface and ensure even, bright lighting. Avoid shadows for the
-              best OCR results.
+              surface and ensure even, bright lighting. Avoid shadows for the best
+              OCR results.
             </Text>
           </Card>
         </View>
       </ScrollView>
+
+      {/* Action Sheet Overlay */}
+      <Modal
+        visible={!!selectedFile}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedFile(null)}
+      >
+        <TouchableOpacity
+          style={styles.menuOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedFile(null)}
+        >
+          <View
+            style={[
+              styles.fileMenu,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                if (selectedFile) openFile(selectedFile);
+                setSelectedFile(null);
+              }}
+            >
+              <Text style={[styles.menuText, { color: colors.text }]}>Open</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                if (selectedFile) shareFile(selectedFile);
+                setSelectedFile(null);
+              }}
+            >
+              <Text style={[styles.menuText, { color: colors.text }]}>Share</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                if (selectedFile) handleDelete(selectedFile);
+                setSelectedFile(null);
+              }}
+            >
+              <Text style={[styles.menuText, { color: '#E53935' }]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -431,14 +611,6 @@ const styles = StyleSheet.create({
   },
   brandName: {
     ...Typography.headingM,
-  },
-  iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
   },
 
   greetingSection: {
@@ -559,6 +731,10 @@ const styles = StyleSheet.create({
   fileMeta: {
     ...Typography.caption,
   },
+  emptyText: {
+    ...Typography.body,
+    paddingVertical: Spacing.md,
+  },
 
   tipsCard: {
     padding: Spacing.base,
@@ -584,17 +760,38 @@ const styles = StyleSheet.create({
     ...Typography.body,
     lineHeight: 22,
   },
-  searchResults: {
-  marginTop: 8,
-  borderRadius: 16,
-  borderWidth: 1,
-  overflow: "hidden",
-},
 
-searchResult: {
-  paddingHorizontal: 16,
-  paddingVertical: 14,
-  borderBottomWidth: StyleSheet.hairlineWidth,
-  borderBottomColor: "#2A3441",
-},
+  searchResults: {
+    marginTop: 8,
+    marginHorizontal: Spacing.base,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  searchResult: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#2A3441',
+  },
+
+  menuOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  fileMenu: {
+    width: 220,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    paddingVertical: 6,
+  },
+  menuItem: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: 14,
+  },
+  menuText: {
+    ...Typography.bodyMedium,
+  },
 });
