@@ -12,6 +12,7 @@ import { ScanSession } from '@/services/scanner/ScanSession';
 import { useFocusEffect } from "@react-navigation/native";
 import * as FileSystem from "expo-file-system/legacy";
 import { saveScanImage } from '@/services/scanner/imageStorage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
 
@@ -19,7 +20,7 @@ import { saveScanImage } from '@/services/scanner/imageStorage';
 
 export default function EditScan() {
 
-
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
 
@@ -128,7 +129,12 @@ export default function EditScan() {
   <Text>Loading...</Text>
 )}
 
-  <View style={styles.toolbar}>
+<View
+  style={[
+    styles.toolbar,
+    { paddingBottom: 16 + insets.bottom },
+  ]}
+>a
 
     {/* Rotate */}
     <TouchableOpacity
