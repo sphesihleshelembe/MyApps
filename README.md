@@ -148,5 +148,9 @@ Founder of **ShelembeStudios**
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+Copyright © 2026 Shelembe Studios.
+
+All Rights Reserved.
+
+This project and its source code are proprietary to Shelembe Studios. No permission is granted to copy, modify, distribute, or use this software or its source code without prior written permission from the copyright owner.
 
