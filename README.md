@@ -68,17 +68,20 @@ Additional features:
 
 ## 🛠️ Built With
 
-* React Native
-* Expo
-* TypeScript
-* Kotlin (Native Modules)
-* OpenCV
-* ML Kit
-* React Native Reanimated
-* Expo Router
-* React Native SVG
+### Frontend
+- **React Native** – Cross-platform mobile application development.
+- **Expo SDK 54** – Development tools and native application integration.
+- **TypeScript** – Type-safe application code.
+- **Expo Router** – File-based navigation.
 
----
+### Native Android Development
+- **Kotlin** – Native Android functionality and module integration.
+- **OpenCV 4.12.0** – Image processing and document scanning.
+- **Google ML Kit** – Text recognition (OCR).
+
+### UI and Animation
+- **React Native Reanimated** – Animations and interactions.
+- **React Native SVG** – Vector graphics and visual elements.
 
 ## 📸 Screenshots
 
