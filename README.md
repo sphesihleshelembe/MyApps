@@ -82,7 +82,13 @@ Additional features:
 
 ## 📸 Screenshots
 
-> Screenshots coming soon.
+<p align="center">
+  <img src="screenshots/Home.jpg" width="200" alt="Noviq home screen" />
+  <img src="screenshots/merge.jpeg" width="200" alt="PDF merge tool" />
+  <img src="screenshots/compress.jpeg" width="200" alt="PDF compression tool" />
+  <img src="screenshots/split.jpeg" width="200" alt="PDF split tool" />
+  <img src="screenshots/qrr.jpeg" width="200" alt="QR scanner" />
+</p>
 
 ---
 
