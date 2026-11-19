@@ -97,7 +97,8 @@ Additional features:
 ### Clone the repository
 
 ```bash
-https://github.com/sphesihleshelembe/MyApps.git
+git clone https://github.com/sphesihleshelembe/Noviq.git
+cd Noviq
 ```
 
 ### Install dependencies
@@ -119,17 +120,24 @@ npx expo run:android
 ```
 
 ---
-
 ## 📂 Project Structure
 
 ```text
-app/
-components/
-modules/
-services/
-hooks/
-constants/
-assets/
+Noviq/
+├── app/
+├── android/
+├── assets/
+├── components/
+├── constants/
+├── context/
+├── hooks/
+├── modules/
+│   └── noviq-vision/
+├── services/
+├── theme/
+├── types/
+├── README.md
+└── package.json
 ```
 
 ---
